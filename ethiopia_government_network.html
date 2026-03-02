@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FDRE Government - Relationship Network</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --green: #009639; --yellow: #ffcd00; --red: #dc281e;
+            --blue: #0f3ebf; --orange: #ff8c00; --purple: #9b59b6;
+            --bg-1: #06060f; --bg-2: #0d0d20;
+            --glass: rgba(255,255,255,0.07);
+            --glass-b: rgba(255,255,255,0.13);
+            --muted: #6a7290;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(ellipse at 40% 40%, #0d1530 0%, #06060f 70%);
+            min-height: 100vh; color: #fff; overflow: hidden;
+        }
+
+        /* FLAG */
+        .flag-banner {
+            position: fixed; top:0; left:0; right:0; height:5px;
+            background: linear-gradient(90deg, var(--green) 33%, var(--yellow) 33%, var(--yellow) 66%, var(--red) 66%);
+            z-index: 1000;
+        }
+        .flag-icon {
+            display: inline-block; position: relative;
+            width: 22px; height: 14px; border-radius: 2px;
+            background: linear-gradient(to bottom, var(--green) 33.33%, var(--yellow) 33.33%, var(--yellow) 66.66%, var(--red) 66.66%);
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.22);
+            flex: 0 0 auto;
+        }
+        .flag-icon::before {
+            content: ""; position: absolute;
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--blue); border: 1px solid var(--yellow);
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+        }
+        .flag-icon::after {
+            content: ""; position: absolute;
+            width: 5px; height: 5px; background: var(--yellow);
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+        }
+
+        /* HEADER */
+        .header {
+            position: fixed; top:5px; left:0; right:0;
+            background: rgba(0,0,0,0.82); backdrop-filter: blur(16px);
+            padding: 13px 20px; z-index: 100;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--glass-b);
+        }
+        .header h1 {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 1.15rem;
+            background: linear-gradient(90deg, var(--green), var(--yellow), var(--red));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .controls { display: flex; gap: 8px; align-items: center; }
+        .control-btn {
+            padding: 7px 15px; background: var(--glass); border: 1px solid var(--glass-b);
+            border-radius: 8px; color: #ddd; font-size: 0.77rem; cursor: pointer;
+            transition: all 0.25s ease; font-weight: 500;
+        }
+        .control-btn:hover { background: rgba(255,205,0,0.15); border-color: var(--yellow); color: var(--yellow); transform: translateY(-1px); }
+        .control-btn.active { background: rgba(255,205,0,0.25); border-color: var(--yellow); color: var(--yellow); }
+
+        /* MAIN GRAPH */
+        #graph-container { width:100vw; height:100vh; }
+        svg { width:100%; height:100%; }
+
+        /* LINKS */
+        .link { fill:none; stroke-opacity:0.4; transition:all 0.3s; }
+        .link:hover { stroke-opacity:0.9; }
+        .link-label-group text {
+            font-size:9px; fill:#888; text-anchor:middle; pointer-events:none;
+        }
+        .link-label-group rect { fill:rgba(0,0,0,0.75); }
+
+        /* NODES */
+        .node { cursor: grab; }
+        .node:active { cursor: grabbing; }
+        .node circle {
+            transition: r 0.3s cubic-bezier(0.34,1.56,0.64,1), stroke-width 0.3s;
+            stroke: rgba(255,255,255,0.6); stroke-width: 1.5px;
+        }
+        .node:hover circle {
+            stroke: var(--yellow); stroke-width: 3px;
+        }
+        .node.selected circle { stroke: var(--yellow); stroke-width: 4px; }
+        .node text { font-family:'Inter',sans-serif; font-size:11px; fill:#eee; pointer-events:none; font-weight:500; }
+        .node-emoji { font-size:15px; pointer-events:none; }
+
+        /* PARTICLES */
+        .particle { pointer-events:none; }
+
+        /* SIDEBAR */
+        .sidebar {
+            position: fixed; right:0; top:65px; bottom:0; width:310px;
+            background: rgba(2,2,16,0.94); backdrop-filter: blur(16px);
+            border-left: 1px solid var(--glass-b); padding: 22px 18px;
+            overflow-y: auto; transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); z-index: 90;
+        }
+        .sidebar.open { transform: translateX(0); }
+        .sidebar h2 { font-size:1.1rem; margin-bottom:10px; color:var(--yellow); }
+        .sidebar p { color:#8a92a8; font-size:0.84rem; line-height:1.6; margin-bottom:16px; }
+        .sidebar h3 { font-size:0.75rem; color:#555; margin:18px 0 8px; text-transform:uppercase; letter-spacing:1px; }
+        .rel-item {
+            background:var(--glass); border-radius:8px; padding:10px 12px;
+            margin-bottom:8px; border-left:3px solid;
+            transition: all 0.2s; cursor: pointer;
+        }
+        .rel-item:hover { background: rgba(255,255,255,0.1); transform: translateX(3px); }
+        .rel-item.incoming { border-left-color: var(--green); }
+        .rel-item.outgoing { border-left-color: var(--red); }
+        .rel-type { font-size:0.7rem; color:var(--muted); margin-bottom:2px; }
+        .rel-target { font-weight:600; color:#ddd; font-size:0.84rem; }
+
+        /* LEGEND */
+        .legend {
+            position: fixed; left:18px; bottom:18px;
+            background: rgba(2,2,16,0.9); backdrop-filter: blur(14px);
+            border-radius: 12px; padding: 14px 16px;
+            border: 1px solid var(--glass-b); z-index: 100;
+            transition: all 0.3s ease;
+        }
+        .legend h4 { font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; }
+        .legend-item {
+            display:flex; align-items:center; gap:9px;
+            font-size:0.78rem; margin-bottom:7px; cursor:pointer;
+            transition: opacity 0.2s;
+        }
+        .legend-item:hover { opacity:0.8; }
+        .legend-item.hidden { opacity:0.25; }
+        .legend-col { width:13px; height:13px; border-radius:50%; border:2px solid rgba(255,255,255,0.5); }
+
+        /* STATS */
+        .stats {
+            position: fixed; left:18px; top:75px;
+            background: rgba(2,2,16,0.88); backdrop-filter: blur(14px);
+            border-radius: 12px; padding: 13px 16px;
+            border: 1px solid var(--glass-b); z-index: 100;
+        }
+        .stat-item { display:flex; justify-content:space-between; gap:22px; font-size:0.78rem; margin-bottom:5px; color:var(--muted); }
+        .stat-item:last-child { margin-bottom:0; }
+        .stat-value { color:var(--yellow); font-weight:700; }
+
+        /* SEARCH */
+        .search-box { position:fixed; left:18px; top:195px; z-index:100; }
+        .search-input {
+            width:195px; padding:9px 14px; background:rgba(2,2,16,0.88);
+            border:1px solid var(--glass-b); border-radius:9px; color:#eee;
+            font-size:0.82rem; outline:none; backdrop-filter:blur(14px);
+            transition: border-color 0.2s;
+        }
+        .search-input:focus { border-color:var(--yellow); }
+        .search-results { margin-top:8px; max-height:200px; overflow-y:auto; }
+        .search-result {
+            padding:7px 12px; background:var(--glass);
+            border-radius:6px; margin-bottom:5px; font-size:0.78rem;
+            cursor:pointer; transition:all 0.2s; border:1px solid transparent;
+        }
+        .search-result:hover { background:rgba(255,205,0,0.15); border-color:var(--yellow); }
+
+        /* FORCE CONTROLS */
+        .force-controls {
+            position: fixed; left:18px; bottom:200px;
+            background: rgba(2,2,16,0.88); backdrop-filter:blur(14px);
+            border-radius: 12px; padding: 14px 16px;
+            border: 1px solid var(--glass-b); z-index: 100; min-width:195px;
+        }
+        .force-controls h4 { font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; }
+        .force-slider { margin-bottom:10px; }
+        .force-slider label { display:flex; justify-content:space-between; font-size:0.72rem; color:var(--muted); margin-bottom:4px; }
+        .force-slider label span { color:var(--yellow); font-weight:600; }
+        input[type=range] {
+            width:100%; accent-color:var(--yellow); cursor:pointer;
+            background:transparent; height:4px;
+        }
+
+        /* MINIMAP */
+        .minimap {
+            position:fixed; right:18px; bottom:18px;
+            width:155px; height:115px;
+            background: rgba(2,2,16,0.88); border:1px solid var(--glass-b);
+            border-radius:10px; z-index:100; overflow:hidden;
+        }
+        .minimap svg { width:100%; height:100%; }
+        .minimap-viewport { fill:none; stroke:var(--yellow); stroke-width:1.5; opacity:0.6; }
+
+        /* TOOLTIP */
+        .tooltip {
+            position:fixed; padding:14px 18px;
+            background:rgba(2,2,16,0.97); border:2px solid var(--yellow);
+            border-radius:12px; pointer-events:none; font-size:0.84rem;
+            max-width:300px; z-index:2000; opacity:0; transition:opacity 0.2s;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.7), 0 0 20px rgba(255,205,0,0.1);
+        }
+        .tooltip.visible { opacity:1; }
+        .tooltip-title { font-weight:700; color:var(--yellow); margin-bottom:6px; font-size:0.95rem; }
+        .tooltip-meta { color:var(--muted); font-size:0.72rem; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px; }
+        .tooltip-desc { color:#b0b8cc; line-height:1.5; font-size:0.82rem; }
+
+        /* RIPPLE */
+        .ripple-circle {
+            fill: none; stroke: var(--yellow); stroke-width: 2;
+            opacity: 0; pointer-events: none;
+        }
+
+        /* NODE LABELS TOGGLE */
+        .labels-visible .node text { display: block; }
+        .labels-hidden .node text { display: none; }
+    </style>
+</head>
+<body>
+<div class="flag-banner"></div>
+
+<div class="header">
+    <h1><span class="flag-icon" aria-hidden="true"></span>Ethiopian Government - Relationship Network</h1>
+    <div class="controls">
+        <button class="control-btn" id="btn-reset">⌂ Reset View</button>
+        <button class="control-btn" id="btn-anim">▶ Flow Animation</button>
+        <button class="control-btn" id="btn-labels">🏷 Labels</button>
+        <button class="control-btn" id="btn-layout">↻ Re-layout</button>
+    </div>
+</div>
+
+<div class="stats">
+    <div class="stat-item"><span>Nodes</span><span class="stat-value" id="node-count">0</span></div>
+    <div class="stat-item"><span>Links</span><span class="stat-value" id="link-count">0</span></div>
+    <div class="stat-item"><span>Domains</span><span class="stat-value" id="domain-count">0</span></div>
+</div>
+
+<div class="search-box">
+    <input class="search-input" id="search" placeholder="🔍 Search entities…" autocomplete="off">
+    <div class="search-results" id="search-results"></div>
+</div>
+
+<div class="force-controls">
+    <h4>Force Controls</h4>
+    <div class="force-slider">
+        <label>Repulsion <span id="charge-val">-300</span></label>
+        <input type="range" id="charge-slider" min="-800" max="-80" value="-300" step="10">
+    </div>
+    <div class="force-slider">
+        <label>Link Distance <span id="dist-val">100</span></label>
+        <input type="range" id="dist-slider" min="40" max="280" value="100" step="5">
+    </div>
+    <div class="force-slider">
+        <label>Gravity <span id="grav-val">0.3</span></label>
+        <input type="range" id="grav-slider" min="0" max="1" value="0.3" step="0.05">
+    </div>
+</div>
+
+<div id="graph-container"></div>
+
+<div class="sidebar" id="sidebar">
+    <h2 id="sel-title">Select a node</h2>
+    <p id="sel-desc">Click on any node to explore its government relationships and connections.</p>
+    <h3>Incoming Relations</h3>
+    <div id="incoming-rels"></div>
+    <h3>Outgoing Relations</h3>
+    <div id="outgoing-rels"></div>
+</div>
+
+<div class="legend">
+    <h4>Categories</h4>
+    <div class="legend-item" data-group="sovereign"><div class="legend-col" style="background:#ffd700"></div>Sovereign</div>
+    <div class="legend-item" data-group="constitutional"><div class="legend-col" style="background:#9b59b6"></div>Constitutional</div>
+    <div class="legend-item" data-group="legislative"><div class="legend-col" style="background:#dc281e"></div>Legislative</div>
+    <div class="legend-item" data-group="executive"><div class="legend-col" style="background:#009639"></div>Executive</div>
+    <div class="legend-item" data-group="judicial"><div class="legend-col" style="background:#0f3ebf"></div>Judicial</div>
+    <div class="legend-item" data-group="regional"><div class="legend-col" style="background:#ff8c00"></div>Regional</div>
+    <div class="legend-item" data-group="tax"><div class="legend-col" style="background:#3498db"></div>Taxation</div>
+    <div class="legend-item" data-group="revenue"><div class="legend-col" style="background:#e74c3c"></div>Revenue</div>
+    <div class="legend-item" data-group="refugee"><div class="legend-col" style="background:#1abc9c"></div>Refugee Governance</div>
+    <div class="legend-item" data-group="humanitarian"><div class="legend-col" style="background:#f39c12"></div>Humanitarian Agencies</div>
+</div>
+
+<div class="minimap"><svg id="minimap-svg"></svg></div>
+
+<div class="tooltip" id="tooltip">
+    <div class="tooltip-title" id="tt-title"></div>
+    <div class="tooltip-meta" id="tt-meta"></div>
+    <div class="tooltip-desc" id="tt-desc"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════
+const nodes = [
+    { id:"people", label:"The People", group:"sovereign", icon:"👥", size:34, desc:"Sovereign power resides in the people. All authority emanates from the Ethiopian people." },
+    { id:"constitution", label:"Constitution", group:"constitutional", icon:"📜", size:38, desc:"The supreme law of the land. Establishes the federal system, ethnic federalism, and fundamental rights (1995)." },
+    { id:"hopr", label:"HoPR", full:"House of Peoples' Representatives", group:"legislative", icon:"🏛️", size:30, desc:"Lower house with up to 550 members. Sole federal legislative body. Passes laws, approves budget, appoints PM and judges." },
+    { id:"hof", label:"HoF", full:"House of Federation", group:"legislative", icon:"🤝", size:28, desc:"Upper house representing ethnic groups. Interprets Constitution, resolves inter-state disputes, determines revenue-sharing formula." },
+    { id:"president", label:"President", group:"executive", icon:"👑", size:24, desc:"Taye Atske Selassie. Ceremonial head of state. Elected by HoPR. Signs laws into effect." },
+    { id:"pm", label:"Prime Minister", group:"executive", icon:"⭐", size:34, desc:"Abiy Ahmed. Head of government. Commander-in-Chief. Chairs Council of Ministers. Appoints ministers and judges." },
+    { id:"council", label:"Council of Ministers", group:"executive", icon:"⚡", size:30, desc:"The Cabinet. Core executive body. Implements national policies and day-to-day administration." },
+    { id:"mof", label:"Min. of Finance", group:"executive", icon:"💰", size:21, desc:"Manages national budget, public debt, macroeconomic policies, public-private partnerships." },
+    { id:"mor", label:"Min. of Revenues", group:"executive", icon:"📊", size:21, desc:"Apex tax management. Oversees domestic taxes and Ethiopian Customs Commission." },
+    { id:"mod", label:"Min. of Defense", group:"executive", icon:"🛡️", size:21, desc:"Oversees national security and armed forces." },
+    { id:"mop", label:"Min. of Planning", group:"executive", icon:"📈", size:19, desc:"Drafts Ten-Year Development Plans and macroeconomic frameworks." },
+    { id:"moti", label:"Trade & Integration", group:"executive", icon:"🌍", size:19, desc:"Oversees WTO, AfCFTA, trade competitiveness, export permits." },
+    { id:"moi", label:"Min. of Industry", group:"executive", icon:"🏭", size:19, desc:"Manufacturing, special economic zones, import substitution strategies." },
+    { id:"mowe", label:"Water & Energy", group:"executive", icon:"⚡", size:19, desc:"National electrification, water resource management, water use permits." },
+    { id:"momp", label:"Mines & Petroleum", group:"executive", icon:"⛏️", size:19, desc:"Mining licenses, oil/gas operations, natural resource extraction." },
+    { id:"moj", label:"Min. of Justice", group:"executive", icon:"⚖️", size:19, desc:"Federal legal frameworks and law enforcement." },
+    { id:"mofa", label:"Foreign Affairs", group:"executive", icon:"🌐", size:19, desc:"International diplomacy and treaties." },
+    { id:"moa", label:"Agriculture", group:"executive", icon:"🌾", size:17, desc:"Agricultural policy and development." },
+    { id:"moh", label:"Health", group:"executive", icon:"🏥", size:17, desc:"National health system." },
+    { id:"moe", label:"Education", group:"executive", icon:"📚", size:17, desc:"Educational policy and curriculum." },
+    { id:"supreme", label:"Supreme Court", group:"judicial", icon:"⚖️", size:27, desc:"Highest court in Ethiopia. Constitutional interpretation. Final arbiter on federal matters." },
+    { id:"high", label:"High Courts", group:"judicial", icon:"⚖️", size:21, desc:"Intermediate appellate courts. Handle serious federal crimes and civil appeals." },
+    { id:"first", label:"First Instance", group:"judicial", icon:"⚖️", size:19, desc:"Trial courts. Entry level for federal cases, banking disputes." },
+    { id:"regions", label:"Regional States", group:"regional", icon:"🗺️", size:34, desc:"12 Regional States under ethnic federalism. Autonomous powers with State Councils and Executive Bureaus." },
+    { id:"addis", label:"Addis Ababa", group:"regional", icon:"🏙️", size:21, desc:"Chartered city. Capital and federal seat." },
+    { id:"dire", label:"Dire Dawa", group:"regional", icon:"🏙️", size:19, desc:"Chartered city in the east." },
+    { id:"state_council", label:"State Councils", group:"regional", icon:"🏛️", size:24, desc:"Regional parliaments. Enact regional laws, approve budgets." },
+    { id:"bureaus", label:"Exec. Bureaus", group:"regional", icon:"⚡", size:21, desc:"Regional equivalents of federal ministries." },
+    { id:"zones", label:"Zones", group:"regional", icon:"📍", size:17, desc:"Administrative divisions within regions." },
+    { id:"woredas", label:"Woredas", group:"regional", icon:"📍", size:17, desc:"Districts — local government level." },
+    { id:"kebeles", label:"Kebeles", group:"regional", icon:"📍", size:15, desc:"Neighborhoods/Wards — lowest administrative unit." },
+    { id:"tax96", label:"Art. 96 Taxes", group:"tax", icon:"💚", size:23, desc:"Federal exclusive taxes: Customs, federal employees, state enterprises, transport." },
+    { id:"tax97", label:"Art. 97 Taxes", group:"tax", icon:"🧡", size:23, desc:"Regional exclusive taxes: Regional employees, agriculture, land leases, local trade." },
+    { id:"tax98", label:"Art. 98 Taxes", group:"tax", icon:"💜", size:23, desc:"Concurrent taxes: Corporate taxes (50/50 split), mining royalties, joint enterprises." },
+    { id:"tax99", label:"Art. 99 Taxes", group:"tax", icon:"💙", size:21, desc:"Undesignated taxes: New categories requiring 2/3 joint vote." },
+    { id:"customs", label:"Customs Comm.", group:"revenue", icon:"🛃", size:19, desc:"Ethiopian Customs Commission. Collects import/export duties." },
+    { id:"rev_auth", label:"Revenue Auth.", group:"revenue", icon:"💵", size:19, desc:"Federal and Regional Revenue Authorities. Tax collection bodies." },
+    { id:"block_grants", label:"Block Grants", group:"revenue", icon:"💸", size:23, desc:"Federal transfers to regions. HoF determines revenue-sharing formula." },
+    { id:"refugee_law", label:"Refugee Proc. 1110/2019", group:"refugee", icon:"📘", size:22, desc:"Refugee Proclamation No. 1110/2019 provides Ethiopia's legal framework for asylum, rights, and refugee administration." },
+    { id:"rrs", label:"RRS", full:"Refugees and Returnees Service", group:"refugee", icon:"🏛️", size:26, desc:"Government lead institution for refugee administration and implementation of Ethiopia's refugee legal framework." },
+    { id:"crrf", label:"CRRF Platform", group:"refugee", icon:"🧭", size:20, desc:"Comprehensive Refugee Response Framework platform aligning government, UN agencies, and partners." },
+    { id:"refugees_asylum", label:"Refugees & Asylum Seekers", group:"refugee", icon:"👨‍👩‍👧", size:30, desc:"People seeking and receiving refugee protection in Ethiopia." },
+    { id:"unhcr", label:"UNHCR", group:"humanitarian", icon:"🛡️", size:25, desc:"UNHCR co-leads refugee response with RRS, including protection, registration/documentation support, shelter, and solutions." },
+    { id:"wfp", label:"WFP", group:"humanitarian", icon:"🍲", size:24, desc:"WFP leads food assistance and nutrition support for refugees in Ethiopia, through in-kind and cash modalities." },
+    { id:"iom", label:"IOM", group:"humanitarian", icon:"📍", size:23, desc:"IOM supports displacement operations through site management (CCCM), displacement tracking (DTM), emergency shelter/NFI, and mobility support." },
+    { id:"unicef", label:"UNICEF", group:"humanitarian", icon:"🧒", size:22, desc:"UNICEF supports refugee children and families with WASH, education, child protection, and health-nutrition services." },
+    { id:"ngo_partners", label:"NGO Partners", group:"humanitarian", icon:"🤝", size:21, desc:"National and international NGO partners implement frontline services under government and UN coordination." },
+    { id:"protection_services", label:"Protection & Registration", group:"refugee", icon:"📝", size:21, desc:"Asylum reception, registration, documentation, and protection case management." },
+    { id:"shelter_services", label:"Shelter & Site Services", group:"refugee", icon:"🏠", size:21, desc:"Shelter/NFI support and site-level services in refugee locations." },
+    { id:"food_services", label:"Food & Nutrition", group:"refugee", icon:"🥣", size:21, desc:"Regular food assistance, school feeding support, and nutrition services." },
+    { id:"energy_services", label:"Energy Access", group:"refugee", icon:"🔋", size:20, desc:"Clean cooking and lighting programs to reduce firewood dependence and improve safety." },
+    { id:"basic_services", label:"WASH, Health, Education", group:"refugee", icon:"💧", size:20, desc:"Core household and child services across water, sanitation, health, and education." },
+];
+
+const links = [
+    { source:"people", target:"constitution", type:"establishes", label:"establishes" },
+    { source:"constitution", target:"hopr", type:"creates", label:"creates" },
+    { source:"constitution", target:"hof", type:"creates", label:"creates" },
+    { source:"constitution", target:"pm", type:"establishes", label:"establishes" },
+    { source:"constitution", target:"supreme", type:"establishes", label:"establishes" },
+    { source:"constitution", target:"regions", type:"establishes", label:"establishes" },
+    { source:"hopr", target:"president", type:"elects", label:"elects" },
+    { source:"hopr", target:"pm", type:"appoints", label:"appoints" },
+    { source:"hopr", target:"supreme", type:"confirms", label:"confirms judges" },
+    { source:"hopr", target:"hof", type:"joint session", label:"joint session", dashed:true },
+    { source:"hof", target:"regions", type:"revenue sharing", label:"revenue formula" },
+    { source:"hof", target:"block_grants", type:"determines", label:"determines" },
+    { source:"pm", target:"council", type:"chairs", label:"chairs" },
+    { source:"pm", target:"mod", type:"commands", label:"commands" },
+    { source:"council", target:"mof", type:"comprises", label:"comprises" },
+    { source:"council", target:"mor", type:"comprises", label:"comprises" },
+    { source:"council", target:"mop", type:"comprises", label:"comprises" },
+    { source:"council", target:"moti", type:"comprises", label:"comprises" },
+    { source:"council", target:"moi", type:"comprises", label:"comprises" },
+    { source:"council", target:"mowe", type:"comprises", label:"comprises" },
+    { source:"council", target:"momp", type:"comprises", label:"comprises" },
+    { source:"council", target:"moj", type:"comprises", label:"comprises" },
+    { source:"council", target:"mofa", type:"comprises", label:"comprises" },
+    { source:"council", target:"moa", type:"comprises", label:"comprises" },
+    { source:"council", target:"moh", type:"comprises", label:"comprises" },
+    { source:"council", target:"moe", type:"comprises", label:"comprises" },
+    { source:"council", target:"mod", type:"comprises", label:"comprises" },
+    { source:"mof", target:"block_grants", type:"manages", label:"manages" },
+    { source:"mor", target:"customs", type:"oversees", label:"oversees" },
+    { source:"mor", target:"rev_auth", type:"oversees", label:"oversees" },
+    { source:"momp", target:"tax98", type:"regulates", label:"regulates" },
+    { source:"supreme", target:"high", type:"oversees", label:"oversees" },
+    { source:"high", target:"first", type:"oversees", label:"oversees" },
+    { source:"regions", target:"state_council", type:"has", label:"has" },
+    { source:"regions", target:"bureaus", type:"has", label:"has" },
+    { source:"regions", target:"zones", type:"divided into", label:"divided into" },
+    { source:"regions", target:"addis", type:"includes", label:"chartered city" },
+    { source:"regions", target:"dire", type:"includes", label:"chartered city" },
+    { source:"zones", target:"woredas", type:"divided into", label:"divided into" },
+    { source:"woredas", target:"kebeles", type:"divided into", label:"divided into" },
+    { source:"bureaus", target:"rev_auth", type:"operates", label:"operates" },
+    { source:"customs", target:"tax96", type:"collects", label:"collects" },
+    { source:"rev_auth", target:"tax96", type:"collects", label:"collects" },
+    { source:"rev_auth", target:"tax97", type:"collects", label:"collects" },
+    { source:"rev_auth", target:"tax98", type:"collects", label:"collects (shared)" },
+    { source:"tax96", target:"block_grants", type:"funds", label:"funds" },
+    { source:"tax98", target:"block_grants", type:"partially funds", label:"partly funds" },
+    { source:"block_grants", target:"regions", type:"transfers to", label:"transfers to" },
+    { source:"moj", target:"supreme", type:"supports", label:"legal framework" },
+    { source:"council", target:"hopr", type:"accountable to", label:"accountable to" },
+    { source:"president", target:"council", type:"signs laws for", label:"signs laws" },
+    { source:"hopr", target:"refugee_law", type:"enacts", label:"enacts" },
+    { source:"refugee_law", target:"rrs", type:"assigns", label:"assigns authority" },
+    { source:"rrs", target:"unhcr", type:"co-leads", label:"co-leads response" },
+    { source:"rrs", target:"crrf", type:"coordinates", label:"chairs platform" },
+    { source:"rrs", target:"refugees_asylum", type:"administers", label:"administers asylum" },
+    { source:"crrf", target:"unhcr", type:"coordinates", label:"coordinates" },
+    { source:"crrf", target:"wfp", type:"coordinates", label:"coordinates" },
+    { source:"crrf", target:"iom", type:"coordinates", label:"coordinates" },
+    { source:"crrf", target:"unicef", type:"coordinates", label:"coordinates" },
+    { source:"crrf", target:"ngo_partners", type:"coordinates", label:"coordinates" },
+    { source:"unhcr", target:"protection_services", type:"supports", label:"protection/registration" },
+    { source:"unhcr", target:"shelter_services", type:"supports", label:"shelter/NFI" },
+    { source:"unhcr", target:"energy_services", type:"supports", label:"clean energy" },
+    { source:"wfp", target:"food_services", type:"delivers", label:"food and nutrition" },
+    { source:"iom", target:"shelter_services", type:"supports", label:"shelter/site support" },
+    { source:"iom", target:"basic_services", type:"supports", label:"site operations" },
+    { source:"unicef", target:"basic_services", type:"delivers", label:"child services" },
+    { source:"ngo_partners", target:"protection_services", type:"delivers", label:"implements" },
+    { source:"ngo_partners", target:"shelter_services", type:"delivers", label:"implements" },
+    { source:"ngo_partners", target:"food_services", type:"supports", label:"supports delivery" },
+    { source:"protection_services", target:"refugees_asylum", type:"serves", label:"serves" },
+    { source:"shelter_services", target:"refugees_asylum", type:"serves", label:"serves" },
+    { source:"food_services", target:"refugees_asylum", type:"serves", label:"serves" },
+    { source:"energy_services", target:"refugees_asylum", type:"serves", label:"serves" },
+    { source:"basic_services", target:"refugees_asylum", type:"serves", label:"serves" },
+];
+
+const COLORS = {
+    sovereign:"#ffd700", constitutional:"#9b59b6", legislative:"#dc281e",
+    executive:"#009639", judicial:"#0f3ebf", regional:"#ff8c00",
+    tax:"#3498db", revenue:"#e74c3c", refugee:"#1abc9c", humanitarian:"#f39c12"
+};
+const LINK_COLORS = {
+    establishes:"#9b59b6", creates:"#9b59b6", elects:"#dc281e", appoints:"#dc281e",
+    confirms:"#dc281e", chairs:"#009639", commands:"#009639", comprises:"#009639",
+    oversees:"#0f3ebf", has:"#ff8c00", "divided into":"#ff8c00", includes:"#ff8c00",
+    collects:"#e74c3c", funds:"#e74c3c", "partially funds":"#e74c3c",
+    "transfers to":"#e74c3c", determines:"#dc281e", "revenue sharing":"#dc281e",
+    "revenue formula":"#dc281e", manages:"#009639", regulates:"#009639",
+    operates:"#ff8c00", "joint session":"#9b59b6", "legal framework":"#0f3ebf",
+    "accountable to":"#dc281e", "signs laws":"#dc281e", "chartered city":"#ff8c00",
+    enacts:"#16a085", assigns:"#16a085", "co-leads":"#16a085", administers:"#16a085",
+    coordinates:"#f39c12", supports:"#f39c12", delivers:"#f39c12", serves:"#1abc9c"
+};
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+let sim, svg, g, linkEls, nodeEls, linkLabelEls, zoomBehavior;
+let animRunning = false, particles = [], hiddenGroups = new Set();
+let labelsVisible = true;
+
+document.getElementById('node-count').textContent = nodes.length;
+document.getElementById('link-count').textContent = links.length;
+document.getElementById('domain-count').textContent = new Set(nodes.map(n=>n.group)).size;
+
+function init() {
+    const W = innerWidth, H = innerHeight;
+    const container = document.getElementById('graph-container');
+
+    svg = d3.select('#graph-container').append('svg').attr('width',W).attr('height',H)
+        .classed('labels-visible', true);
+    svg.on('click', onCanvasClick);
+
+    // ─ DEFS (glow filters + arrow markers) ─
+    const defs = svg.append('defs');
+
+    // Glow filter
+    const glowFilter = defs.append('filter').attr('id','node-glow').attr('x','-50%').attr('y','-50%').attr('width','200%').attr('height','200%');
+    glowFilter.append('feGaussianBlur').attr('stdDeviation','5').attr('result','coloredBlur');
+    const fm = glowFilter.append('feMerge');
+    fm.append('feMergeNode').attr('in','coloredBlur');
+    fm.append('feMergeNode').attr('in','SourceGraphic');
+
+    // Arrow markers per color
+    const markerColors = [...new Set(Object.values(LINK_COLORS))];
+    markerColors.forEach(col => {
+        const safe = col.replace('#','c');
+        defs.append('marker').attr('id',`arr-${safe}`).attr('viewBox','0 -4 8 8')
+            .attr('refX',22).attr('refY',0).attr('markerWidth',5).attr('markerHeight',5)
+            .attr('orient','auto').append('path').attr('d','M0,-4L8,0L0,4').attr('fill',col);
+    });
+
+    // ─ ZOOM ─
+    zoomBehavior = d3.zoom().scaleExtent([0.2,3.5]).on('zoom', e => {
+        g.attr('transform', e.transform);
+        updateMinimap();
+    });
+    svg.call(zoomBehavior);
+    g = svg.append('g');
+
+    // ─ SIMULATION ─
+    sim = d3.forceSimulation(nodes)
+        .force('link', d3.forceLink(links).id(d=>d.id).distance(100).strength(0.8))
+        .force('charge', d3.forceManyBody().strength(-300))
+        .force('center', d3.forceCenter(W/2, H/2))
+        .force('x', d3.forceX(W/2).strength(0.3))
+        .force('y', d3.forceY(H/2).strength(0.3))
+        .force('collision', d3.forceCollide().radius(d=>d.size+14));
+
+    // ─ LINKS ─
+    const lg = g.append('g').attr('class','links');
+    linkEls = lg.selectAll('line').data(links).join('line')
+        .attr('class','link')
+        .attr('stroke', d=>LINK_COLORS[d.type]||'#777')
+        .attr('stroke-width', 1.8)
+        .attr('stroke-dasharray', d=>d.dashed?'6,4':null)
+        .attr('marker-end', d=>`url(#arr-${(LINK_COLORS[d.type]||'#777').replace('#','c')})`);
+
+    // ─ LINK LABELS ─
+    linkLabelEls = lg.selectAll('g.ll').data(links).join('g').attr('class','link-label-group');
+    linkLabelEls.append('rect').attr('rx',3).attr('ry',3);
+    linkLabelEls.append('text').text(d=>d.label).attr('dy','0.35em');
+
+    // ─ NODES ─
+    const ng = g.append('g').attr('class','nodes');
+    nodeEls = ng.selectAll('g.node').data(nodes).join('g')
+        .attr('class','node')
+        .call(d3.drag().on('start',ds).on('drag',dd).on('end',de));
+
+    // Circles with glow
+    nodeEls.append('circle')
+        .attr('r', d=>d.size)
+        .attr('fill', d=>COLORS[d.group])
+        .attr('fill-opacity', 0.82)
+        .attr('filter', 'url(#node-glow)');
+
+    // Icons
+    nodeEls.append('text').attr('class','node-emoji')
+        .attr('text-anchor','middle').attr('dy','-0.6em').text(d=>d.icon);
+
+    // Labels
+    nodeEls.append('text').attr('text-anchor','middle')
+        .attr('dy', d=>d.size/2+14).text(d=>d.label)
+        .attr('font-size',10);
+
+    // Ripple group
+    nodeEls.append('circle').attr('class','ripple-circle').attr('r',0);
+
+    // Events
+    nodeEls.on('click',(e,d)=>selectNode(d))
+           .on('mouseover',(e,d)=>showTT(e,d))
+           .on('mousemove',(e)=>moveTT(e))
+           .on('mouseout',hideTT);
+
+    // ─ TICK ─
+    sim.on('tick', () => {
+        linkEls.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
+               .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+
+        nodeEls.attr('transform', d=>`translate(${d.x},${d.y})`);
+
+        linkLabelEls.each(function(d) {
+            const el = d3.select(this);
+            const x=(d.source.x+d.target.x)/2, y=(d.source.y+d.target.y)/2;
+            el.attr('transform',`translate(${x},${y})`);
+            const txt = el.select('text');
+            try {
+                const bb = txt.node().getBBox();
+                el.select('rect').attr('x',-bb.width/2-3).attr('y',-bb.height/2-1)
+                    .attr('width',bb.width+6).attr('height',bb.height+2);
+            } catch(e){}
+        });
+
+        updateParticles();
+        updateMinimap();
+    });
+
+    initMinimap();
+    // Entrance animation
+    nodeEls.attr('transform','translate(-999,-999)')
+        .transition().duration(1200).delay((_,i)=>i*25)
+        .ease(d3.easeBackOut.overshoot(1.3))
+        .attr('transform', d=>`translate(${d.x||innerWidth/2},${d.y||innerHeight/2})`);
+}
+
+// ── DRAG ──
+function ds(e,d) { if(!e.active) sim.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; }
+function dd(e,d) { d.fx=e.x; d.fy=e.y; }
+function de(e,d) { if(!e.active) sim.alphaTarget(0); d.fx=null; d.fy=null; }
+
+// ── TOOLTIP ──
+const tooltip = document.getElementById('tooltip');
+function showTT(e,d) {
+    document.getElementById('tt-title').textContent = d.full||d.label;
+    document.getElementById('tt-meta').textContent = d.group.toUpperCase();
+    document.getElementById('tt-desc').textContent = d.desc;
+    tooltip.classList.add('visible');
+    moveTT(e);
+    // Hover glow boost
+    d3.select(e.currentTarget).select('circle:first-of-type')
+        .attr('fill-opacity',1).attr('r', d.size*1.12);
+}
+function moveTT(e) {
+    let x=e.clientX+15, y=e.clientY+15;
+    if(x+300>innerWidth) x=e.clientX-310;
+    if(y+130>innerHeight) y=e.clientY-140;
+    tooltip.style.left=x+'px'; tooltip.style.top=y+'px';
+}
+function hideTT(e,d) {
+    tooltip.classList.remove('visible');
+    d3.select(e.currentTarget).select('circle:first-of-type')
+        .attr('fill-opacity',0.82).attr('r', d=>d.size);
+}
+
+// ── NODE SELECT ──
+let selectedNode = null;
+
+function selectNode(d) {
+    selectedNode = d;
+    document.getElementById('sel-title').textContent = d.full||d.label;
+    document.getElementById('sel-desc').textContent = d.desc;
+
+    const inc = links.filter(l=>l.target.id===d.id);
+    const out = links.filter(l=>l.source.id===d.id);
+
+    document.getElementById('incoming-rels').innerHTML = inc.map(l=>`
+        <div class="rel-item incoming">
+            <div class="rel-type">${l.type}</div>
+            <div class="rel-target">← ${l.source.label||l.source}</div>
+        </div>`).join('') || '<p style="color:#555;font-size:0.8rem">No incoming relations</p>';
+
+    document.getElementById('outgoing-rels').innerHTML = out.map(l=>`
+        <div class="rel-item outgoing">
+            <div class="rel-type">${l.type}</div>
+            <div class="rel-target">→ ${l.target.label||l.target}</div>
+        </div>`).join('') || '<p style="color:#555;font-size:0.8rem">No outgoing relations</p>';
+
+    document.getElementById('sidebar').classList.add('open');
+
+    // Highlight connected
+    const connIds = new Set([d.id, ...inc.map(l=>l.source.id||l.source), ...out.map(l=>l.target.id||l.target)]);
+    nodeEls.selectAll('circle:first-of-type').attr('fill-opacity', n=>connIds.has(n.id)?0.95:0.15);
+    linkEls.attr('stroke-opacity', l=>(l.source.id===d.id||l.target.id===d.id)?0.9:0.05);
+
+    // Ripple animation
+    const nodeEl = nodeEls.filter(n=>n.id===d.id);
+    nodeEl.select('.ripple-circle')
+        .attr('r',0).attr('opacity',0.8)
+        .transition().duration(800).ease(d3.easeLinear)
+        .attr('r',d.size*2.5).attr('opacity',0)
+        .on('end',function(){d3.select(this).attr('r',0);});
+    nodeEl.select('.ripple-circle').attr('stroke',COLORS[d.group]);
+}
+
+function onCanvasClick(e){
+    if(e.target.tagName==='svg'||e.target.tagName==='g'){
+        document.getElementById('sidebar').classList.remove('open');
+        nodeEls.selectAll('circle:first-of-type').attr('fill-opacity',0.82);
+        linkEls.attr('stroke-opacity',0.4);
+        selectedNode=null;
+    }
+}
+
+// ── ANIMATION (particles on links) ──
+function toggleAnim() {
+    animRunning = !animRunning;
+    const btn = document.getElementById('btn-anim');
+    btn.textContent = animRunning ? '⏸ Pause' : '▶ Flow Animation';
+    btn.classList.toggle('active', animRunning);
+    if(animRunning) startParticles();
+    else stopParticles();
+}
+
+function startParticles() {
+    const pg = g.insert('g','.nodes').attr('class','particles');
+    links.forEach(link=>{
+        const count = Math.floor(Math.random()*2)+1;
+        for(let i=0;i<count;i++){
+            const p = pg.append('circle').attr('class','particle').attr('r',2.5)
+                .attr('fill',LINK_COLORS[link.type]||'#ffcd00').attr('opacity',0.85);
+            particles.push({ el:p, link, t:Math.random(), speed:0.004+Math.random()*0.009 });
+        }
+    });
+}
+
+function stopParticles() {
+    particles.forEach(p=>p.el.remove());
+    particles=[];
+    d3.select('.particles').remove();
+}
+
+function updateParticles() {
+    if(!animRunning) return;
+    particles.forEach(p=>{
+        p.t+=p.speed;
+        if(p.t>1) p.t=0;
+        const x=p.link.source.x+(p.link.target.x-p.link.source.x)*p.t;
+        const y=p.link.source.y+(p.link.target.y-p.link.source.y)*p.t;
+        p.el.attr('cx',x).attr('cy',y);
+    });
+}
+
+// ── MINIMAP ──
+function initMinimap() {
+    const ms = d3.select('#minimap-svg');
+    ms.selectAll('circle').data(nodes).join('circle')
+        .attr('r',2).attr('fill',d=>COLORS[d.group]).attr('opacity',0.7);
+    ms.append('rect').attr('class','minimap-viewport').attr('width',50).attr('height',40);
+}
+
+function updateMinimap() {
+    const ms = d3.select('#minimap-svg'), W=155, H=115;
+    const xs=d3.scaleLinear().domain(d3.extent(nodes,d=>d.x||0)).range([5,W-5]);
+    const ys=d3.scaleLinear().domain(d3.extent(nodes,d=>d.y||0)).range([5,H-5]);
+    ms.selectAll('circle:not(.minimap-viewport)').attr('cx',d=>xs(d.x||0)).attr('cy',d=>ys(d.y||0));
+}
+
+// ── GROUP TOGGLE ──
+document.querySelectorAll('.legend-item').forEach(item=>{
+    item.addEventListener('click',()=>{
+        const grp = item.dataset.group;
+        item.classList.toggle('hidden');
+        if(hiddenGroups.has(grp)) hiddenGroups.delete(grp); else hiddenGroups.add(grp);
+        nodeEls.style('display',d=>hiddenGroups.has(d.group)?'none':'block');
+        linkEls.style('display',d=>(hiddenGroups.has((d.source.group||d.source))||(hiddenGroups.has(d.target.group||d.target)))?'none':'block');
+    });
+});
+
+// ── SEARCH ──
+const searchEl = document.getElementById('search');
+const searchRes = document.getElementById('search-results');
+
+searchEl.addEventListener('input',()=>{
+    const q = searchEl.value.toLowerCase().trim();
+    if(!q){searchRes.innerHTML='';return;}
+    const matches = nodes.filter(n=>(n.label+' '+(n.full||'')).toLowerCase().includes(q)).slice(0,8);
+    searchRes.innerHTML = matches.map(n=>`<div class="search-result" data-id="${n.id}">${n.icon} ${n.label}</div>`).join('');
+    searchRes.querySelectorAll('.search-result').forEach(el=>{
+        el.addEventListener('click',()=>{
+            const node = nodes.find(n=>n.id===el.dataset.id);
+            if(node){
+                svg.transition().duration(800).call(zoomBehavior.transform,
+                    d3.zoomIdentity.translate(innerWidth/2,innerHeight/2).scale(1.8).translate(-node.x,-node.y));
+                selectNode(node);
+                searchRes.innerHTML=''; searchEl.value='';
+            }
+        });
+    });
+});
+
+// ── CONTROLS ──
+document.getElementById('btn-reset').addEventListener('click',()=>{
+    svg.transition().duration(750).call(zoomBehavior.transform, d3.zoomIdentity);
+});
+document.getElementById('btn-anim').addEventListener('click', toggleAnim);
+document.getElementById('btn-layout').addEventListener('click',()=>{sim.alpha(1).restart();});
+document.getElementById('btn-labels').addEventListener('click',function(){
+    labelsVisible=!labelsVisible;
+    svg.classed('labels-visible',labelsVisible).classed('labels-hidden',!labelsVisible);
+    this.classList.toggle('active',!labelsVisible);
+    this.textContent = labelsVisible ? '🏷 Labels' : '🏷 No Labels';
+});
+
+// ── FORCE SLIDERS ──
+document.getElementById('charge-slider').addEventListener('input',function(){
+    const v=+this.value;
+    document.getElementById('charge-val').textContent=v;
+    sim.force('charge',d3.forceManyBody().strength(v)).alpha(0.4).restart();
+});
+document.getElementById('dist-slider').addEventListener('input',function(){
+    const v=+this.value;
+    document.getElementById('dist-val').textContent=v;
+    sim.force('link',d3.forceLink(links).id(d=>d.id).distance(v).strength(0.8)).alpha(0.4).restart();
+});
+document.getElementById('grav-slider').addEventListener('input',function(){
+    const v=+this.value;
+    document.getElementById('grav-val').textContent=v;
+    sim.force('x',d3.forceX(innerWidth/2).strength(v));
+    sim.force('y',d3.forceY(innerHeight/2).strength(v));
+    sim.alpha(0.4).restart();
+});
+
+// ── RESIZE ──
+window.addEventListener('resize',()=>{
+    svg.attr('width',innerWidth).attr('height',innerHeight);
+    sim.force('center',d3.forceCenter(innerWidth/2,innerHeight/2));
+    const grav = +document.getElementById('grav-slider').value;
+    sim.force('x',d3.forceX(innerWidth/2).strength(grav));
+    sim.force('y',d3.forceY(innerHeight/2).strength(grav));
+    sim.alpha(0.3).restart();
+});
+
+// ── KEYBOARD ──
+window.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){
+        document.getElementById('sidebar').classList.remove('open');
+        nodeEls.selectAll('circle:first-of-type').attr('fill-opacity',0.82);
+        linkEls.attr('stroke-opacity',0.4);
+    }
+    if(e.key==='r'||e.key==='R') sim.alpha(1).restart();
+    if(e.key==='a'||e.key==='A') toggleAnim();
+});
+
+// ── START ──
+window.addEventListener('load', init);
+</script>
+</body>
+</html>

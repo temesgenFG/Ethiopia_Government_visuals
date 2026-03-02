@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FDRE Government Structure - Flowchart</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --green: #009639; --yellow: #ffcd00; --red: #dc281e;
+            --blue: #0f3ebf; --orange: #ff8c00; --purple: #9b59b6;
+            --bg: #0a0a14;
+            --glass: rgba(255,255,255,0.06);
+            --glass-b: rgba(255,255,255,0.12);
+            --muted: #7a8097;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(180deg, #0a0a14 0%, #12122a 60%, #141830 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: auto;
+        }
+
+        /* CANVAS */
+        #bg-canvas {
+            position: fixed; inset: 0;
+            pointer-events: none; z-index: 0; opacity: 0.45;
+        }
+
+        /* FLAG BANNER */
+        .flag-banner {
+            position: fixed; top:0; left:0; right:0; height:5px;
+            background: linear-gradient(90deg, var(--green) 33%, var(--yellow) 33%, var(--yellow) 66%, var(--red) 66%);
+            z-index: 1000;
+        }
+        .flag-icon {
+            display: inline-block; position: relative;
+            width: 24px; height: 16px; border-radius: 2px;
+            background: linear-gradient(to bottom, var(--green) 33.33%, var(--yellow) 33.33%, var(--yellow) 66.66%, var(--red) 66.66%);
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.22);
+            flex: 0 0 auto;
+        }
+        .flag-icon::before {
+            content: ""; position: absolute;
+            width: 9px; height: 9px; border-radius: 50%;
+            background: var(--blue); border: 1px solid var(--yellow);
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+        }
+        .flag-icon::after {
+            content: ""; position: absolute;
+            width: 5px; height: 5px; background: var(--yellow);
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+        }
+
+        /* HEADER */
+        .header {
+            text-align: center; padding: 28px 20px 18px;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(14px);
+            position: sticky; top: 0; z-index: 100;
+            border-bottom: 1px solid var(--glass-b);
+        }
+        .header h1 {
+            display: flex; justify-content: center; align-items: center; gap: 10px;
+            font-size: clamp(1.2rem, 3vw, 1.9rem);
+            background: linear-gradient(90deg, var(--green), var(--yellow), var(--red));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            margin-bottom: 6px;
+        }
+        .header p { color: var(--muted); font-size: 0.82rem; }
+
+        /* FILTER BAR */
+        .filter-bar {
+            display: flex; justify-content: center; gap: 8px;
+            flex-wrap: wrap; padding: 14px 16px;
+            background: rgba(0,0,0,0.3); backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-b);
+            position: sticky; top: 80px; z-index: 99;
+        }
+        .filter-btn {
+            padding: 6px 16px;
+            border-radius: 20px; border: 1px solid var(--glass-b);
+            background: var(--glass); color: #ddd; font-size: 0.78rem;
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            font-weight: 500; user-select: none;
+        }
+        .filter-btn:hover { transform: translateY(-2px) scale(1.06); }
+        .filter-btn.all { border-color: var(--yellow); color: var(--yellow); }
+        .filter-btn.executive { border-color: var(--green); color: var(--green); }
+        .filter-btn.legislative { border-color: var(--red); color: var(--red); }
+        .filter-btn.judicial { border-color: var(--blue); color: #4a90d9; }
+        .filter-btn.regional { border-color: var(--orange); color: var(--orange); }
+        .filter-btn.tax { border-color: var(--purple); color: #bb8fce; }
+        .filter-btn.refugee { border-color: #1abc9c; color: #67e8d2; }
+        .filter-btn.active { font-weight: 700; }
+        .filter-btn.all.active { background: rgba(255,205,0,0.18); }
+        .filter-btn.executive.active { background: rgba(0,150,57,0.18); }
+        .filter-btn.legislative.active { background: rgba(220,40,30,0.18); }
+        .filter-btn.judicial.active { background: rgba(15,62,191,0.18); }
+        .filter-btn.regional.active { background: rgba(255,140,0,0.18); }
+        .filter-btn.tax.active { background: rgba(155,89,182,0.18); }
+        .filter-btn.refugee.active { background: rgba(26,188,156,0.18); }
+
+        /* ZOOM */
+        .zoom-controls {
+            position: fixed; bottom: 24px; right: 24px;
+            display: flex; gap: 8px; z-index: 500;
+        }
+        .zoom-btn {
+            width: 42px; height: 42px; border-radius: 50%;
+            border: 2px solid var(--yellow); background: rgba(0,0,0,0.75);
+            color: var(--yellow); font-size: 1.15rem; cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(8px);
+        }
+        .zoom-btn:hover { background: var(--yellow); color: #000; transform: scale(1.15); }
+
+        /* FLOWCHART */
+        .flowchart-wrapper {
+            position: relative; z-index: 1;
+            overflow: hidden;
+        }
+        .flowchart-container {
+            padding: 40px 40px 80px;
+            min-width: 1350px;
+            transform-origin: top center;
+            transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94);
+            position: relative;
+        }
+
+        /* SVG CONNECTIONS */
+        #connections-svg {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 0;
+            overflow: visible;
+        }
+        .conn-path {
+            fill: none; stroke-width: 2;
+            stroke-dasharray: 8 4;
+            opacity: 0;
+            animation: dashDraw 0.8s ease forwards, dashFlow 3s 0.8s linear infinite;
+        }
+        @keyframes dashDraw {
+            from { opacity: 0; stroke-dashoffset: 200; }
+            to { opacity: 0.5; stroke-dashoffset: 0; }
+        }
+        @keyframes dashFlow {
+            from { stroke-dashoffset: 0; }
+            to { stroke-dashoffset: -24; }
+        }
+
+        /* LEVEL */
+        .level {
+            display: flex; justify-content: center; gap: 36px;
+            margin-bottom: 50px; position: relative; z-index: 2;
+        }
+
+        /* NODES */
+        .node {
+            background: linear-gradient(145deg, rgba(255,255,255,0.1), rgba(255,255,255,0.04));
+            border-radius: 16px; padding: 20px 26px;
+            border: 2px solid transparent; position: relative;
+            transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            cursor: pointer; min-width: 180px; text-align: center;
+            backdrop-filter: blur(10px);
+            opacity: 0; transform: translateY(25px);
+        }
+        .node.visible { opacity: 1; transform: translateY(0); }
+
+        .node::before {
+            content: ''; position: absolute;
+            top: 0; left: 0; right: 0; height: 4px;
+            border-radius: 16px 16px 0 0;
+        }
+        .node::after {
+            content: ''; position: absolute; inset: 0;
+            border-radius: 16px;
+            background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.07), transparent 60%);
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .node:hover::after { opacity: 1; }
+        .node:hover {
+            transform: translateY(-7px) scale(1.03) !important;
+            z-index: 10;
+        }
+
+        /* Branch colors */
+        .node.executive { border-color: rgba(0,150,57,0.45); }
+        .node.executive::before { background: linear-gradient(90deg, var(--green), #00c851); }
+        .node.executive:hover { box-shadow: 0 20px 50px rgba(0,150,57,0.35), 0 0 30px rgba(0,150,57,0.2); }
+        .node.legislative { border-color: rgba(220,40,30,0.45); }
+        .node.legislative::before { background: linear-gradient(90deg, var(--red), #ff6b6b); }
+        .node.legislative:hover { box-shadow: 0 20px 50px rgba(220,40,30,0.35), 0 0 30px rgba(220,40,30,0.2); }
+        .node.judicial { border-color: rgba(15,62,191,0.45); }
+        .node.judicial::before { background: linear-gradient(90deg, var(--blue), #4a90d9); }
+        .node.judicial:hover { box-shadow: 0 20px 50px rgba(15,62,191,0.35); }
+        .node.regional { border-color: rgba(255,140,0,0.45); }
+        .node.regional::before { background: linear-gradient(90deg, var(--orange), #ffb347); }
+        .node.regional:hover { box-shadow: 0 20px 50px rgba(255,140,0,0.35); }
+        .node.tax-federal { border-color: rgba(0,150,57,0.45); }
+        .node.tax-federal::before { background: linear-gradient(90deg, var(--green), #00c851); }
+        .node.tax-regional { border-color: rgba(255,140,0,0.45); }
+        .node.tax-regional::before { background: linear-gradient(90deg, var(--orange), #ffb347); }
+        .node.tax-concurrent { border-color: rgba(155,89,182,0.45); }
+        .node.tax-concurrent::before { background: linear-gradient(90deg, var(--purple), #bb8fce); }
+        .node.tax-undesignated { border-color: rgba(52,152,219,0.45); }
+        .node.tax-undesignated::before { background: linear-gradient(90deg, #3498db, #85c1e9); }
+        .node.refugee { border-color: rgba(26,188,156,0.5); }
+        .node.refugee::before { background: linear-gradient(90deg, #1abc9c, #5de8d0); }
+        .node.refugee:hover { box-shadow: 0 20px 50px rgba(26,188,156,0.3), 0 0 28px rgba(26,188,156,0.2); }
+        .node.humanitarian { border-color: rgba(241,196,15,0.5); }
+        .node.humanitarian::before { background: linear-gradient(90deg, #f1c40f, #ffe08a); }
+        .node.humanitarian:hover { box-shadow: 0 20px 50px rgba(241,196,15,0.26), 0 0 24px rgba(241,196,15,0.2); }
+        .node.ceremonial { border-color: rgba(149,165,166,0.45); }
+        .node.ceremonial::before { background: linear-gradient(90deg, #95a5a6, #bdc3c7); }
+
+        /* SELECTED / DIMMED */
+        .node.selected {
+            transform: translateY(-10px) scale(1.06) !important;
+            z-index: 20;
+        }
+        .node.dimmed { opacity: 0.18 !important; transform: translateY(0) scale(0.97) !important; }
+
+        /* PULSE on primary */
+        .node.primary {
+            animation: nodePulse 3s ease-in-out infinite;
+        }
+        @keyframes nodePulse {
+            0%,100% { box-shadow: none; }
+            50% { box-shadow: 0 0 25px rgba(255,205,0,0.25); }
+        }
+
+        /* NODE CONTENT */
+        .node-icon { font-size: 1.7rem; margin-bottom: 8px; }
+        .node-title { font-weight: 700; font-size: 0.92rem; line-height: 1.3; margin-bottom: 3px; }
+        .node-subtitle { font-size: 0.72rem; color: var(--muted); line-height: 1.4; }
+        .node-badge {
+            position: absolute; top: -10px; right: -10px;
+            width: 28px; height: 28px; border-radius: 50%;
+            background: var(--yellow); color: #000;
+            font-size: 0.65rem; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 10px rgba(255,205,0,0.5);
+            animation: badgePop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        @keyframes badgePop {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+
+        /* SIZES */
+        .node.primary-size { padding: 26px 38px; min-width: 210px; }
+        .node.primary-size .node-title { font-size: 1.15rem; }
+        .node.wide { min-width: 270px; }
+        .node.large { padding: 24px 34px; min-width: 310px; }
+
+        /* GROUP */
+        .group {
+            background: rgba(255,255,255,0.02);
+            border-radius: 20px; padding: 28px;
+            border: 1px dashed rgba(255,255,255,0.08);
+        }
+        .group-title {
+            text-align: center; font-size: 0.78rem; color: #555;
+            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 18px;
+        }
+        .group-content { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+
+        /* GRID nodes */
+        .ministries-grid {
+            display: grid; grid-template-columns: repeat(4,1fr); gap: 12px;
+            max-width: 1100px;
+        }
+        .ministry-node {
+            background: rgba(0,150,57,0.08); border: 1px solid rgba(0,150,57,0.25);
+            border-radius: 11px; padding: 10px 14px; font-size: 0.76rem;
+            text-align: center; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            cursor: default; opacity: 0; transform: scale(0.9);
+        }
+        .ministry-node.visible { opacity: 1; transform: scale(1); }
+        .ministry-node:hover { background: rgba(0,150,57,0.2); transform: scale(1.08) translateY(-3px); box-shadow: 0 6px 16px rgba(0,150,57,0.2); }
+        .ministry-node.key { background: rgba(0,150,57,0.2); border-color: var(--green); font-weight: 600; }
+
+        .regions-grid {
+            display: grid; grid-template-columns: repeat(7,1fr); gap: 10px;
+            max-width: 1050px;
+        }
+        .region-node {
+            background: rgba(255,140,0,0.08); border: 1px solid rgba(255,140,0,0.25);
+            border-radius: 9px; padding: 9px; font-size: 0.7rem;
+            text-align: center; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            cursor: default; opacity: 0; transform: translateY(10px);
+        }
+        .region-node.visible { opacity: 1; transform: translateY(0); }
+        .region-node:hover { background: rgba(255,140,0,0.2); transform: scale(1.1) translateY(-3px); }
+        .region-node.chartered { background: rgba(220,40,30,0.12); border-color: rgba(220,40,30,0.4); }
+
+        /* TAX GRID */
+        .tax-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; max-width: 1100px; }
+        .tax-node { padding: 18px; }
+        .tax-list { text-align: left; margin-top: 10px; font-size: 0.72rem; color: #bbb; list-style: none; }
+        .tax-list li { padding: 3px 0 3px 14px; position: relative; }
+        .tax-list li::before { content: "›"; position: absolute; left: 0; color: var(--yellow); font-weight: 700; }
+
+        /* CONNECTORS */
+        .connector {
+            width: 2px; height: 36px;
+            background: linear-gradient(180deg, rgba(255,205,0,0.4), rgba(255,205,0,0.08));
+            margin: 0 auto; position: relative;
+        }
+        .connector::after {
+            content: '▼'; position: absolute; bottom: -8px; left: 50%;
+            transform: translateX(-50%); color: rgba(255,205,0,0.6); font-size: 0.6rem;
+            animation: connAnim 1.5s ease-in-out infinite;
+        }
+        @keyframes connAnim {
+            0%,100% { opacity: 0.4; transform: translateX(-50%) translateY(0); }
+            50% { opacity: 1; transform: translateX(-50%) translateY(4px); }
+        }
+
+        .connector-dots {
+            text-align: center; color: rgba(255,205,0,0.5); font-size: 1.2rem;
+            letter-spacing: 5px; margin: 8px 0;
+        }
+
+        /* FLOW ARROW */
+        .flow-arrow-down {
+            text-align: center; color: rgba(255,205,0,0.8); font-size: 1.8rem;
+            margin: 8px 0; animation: flowArrow 1.5s ease-in-out infinite;
+        }
+        @keyframes flowArrow {
+            0%,100% { transform: translateY(0); opacity: 0.7; }
+            50% { transform: translateY(6px); opacity: 1; }
+        }
+
+        /* SECTION DIVIDERS */
+        .section-divider { text-align: center; margin: 36px 0; position: relative; }
+        .section-divider::before {
+            content: ''; position: absolute; top: 50%; left: 5%; right: 5%; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,205,0,0.3), transparent);
+        }
+        .section-label {
+            display: inline-block; background: #12122a;
+            padding: 0 18px; color: var(--yellow); font-size: 0.8rem;
+            text-transform: uppercase; letter-spacing: 3px; position: relative;
+        }
+
+        /* HORIZONTAL FLOW */
+        .horizontal-flow { display: flex; justify-content: center; gap: 55px; align-items: flex-start; }
+        .flow-branch { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+        .branch-label {
+            font-size: 0.7rem; color: #555; text-transform: uppercase;
+            letter-spacing: 2px; padding: 4px 14px; border-radius: 20px;
+            background: rgba(255,255,255,0.04);
+        }
+
+        /* LEGEND */
+        .legend {
+            position: fixed; bottom: 24px; left: 24px;
+            background: rgba(0,0,0,0.88); backdrop-filter: blur(12px);
+            border-radius: 12px; padding: 14px 18px;
+            border: 1px solid var(--glass-b); z-index: 500;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .legend:hover { transform: scale(1.02); }
+        .legend-title { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.77rem; margin-bottom: 5px; }
+        .legend-dot { width: 11px; height: 11px; border-radius: 3px; }
+
+        /* TOOLTIP */
+        .tooltip {
+            position: fixed; padding: 14px 18px;
+            background: rgba(2,2,14,0.97); border: 2px solid var(--yellow);
+            border-radius: 12px; pointer-events: none; font-size: 0.84rem;
+            max-width: 340px; z-index: 2000; opacity: 0;
+            transition: opacity 0.2s; box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 20px rgba(255,205,0,0.1);
+        }
+        .tooltip.visible { opacity: 1; }
+        .tooltip-title { font-weight: 700; color: var(--yellow); margin-bottom: 8px; font-size: 0.96rem; }
+        .tooltip-content { color: #b0b8cc; line-height: 1.55; }
+        .tooltip-hint { margin-top: 10px; font-size: 0.7rem; color: rgba(255,255,255,0.3); }
+
+        /* CLICK INFO PANEL */
+        #info-panel {
+            position: fixed; top: 50%; right: 0;
+            transform: translateY(-50%) translateX(100%);
+            width: 300px; background: rgba(0,0,0,0.92);
+            backdrop-filter: blur(16px); border-left: 3px solid var(--yellow);
+            border-radius: 16px 0 0 16px; padding: 24px 20px;
+            z-index: 400; transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            box-shadow: -10px 0 40px rgba(0,0,0,0.5);
+        }
+        #info-panel.open { transform: translateY(-50%) translateX(0); }
+        #info-panel-title { color: var(--yellow); font-weight: 700; font-size: 1rem; margin-bottom: 12px; }
+        #info-panel-desc { color: #b0b8cc; font-size: 0.85rem; line-height: 1.6; }
+        #info-panel-close {
+            position: absolute; top: 12px; right: 12px;
+            background: none; border: 1px solid var(--glass-b);
+            color: var(--muted); border-radius: 6px; padding: 3px 8px;
+            cursor: pointer; font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+        #info-panel-close:hover { background: var(--glass); color: #fff; }
+
+        /* SCROLL PROGRESS */
+        #scroll-progress {
+            position: fixed; top: 5px; left: 0; height: 3px;
+            background: linear-gradient(90deg, var(--green), var(--yellow), var(--red));
+            z-index: 1001; transition: width 0.1s;
+        }
+
+        @media (max-width: 1400px) {
+            .flowchart-container { transform: scale(0.88); }
+        }
+    </style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div id="scroll-progress"></div>
+<div class="flag-banner"></div>
+
+<div class="header">
+    <h1><span class="flag-icon" aria-hidden="true"></span>Federal Democratic Republic of Ethiopia</h1>
+    <p>Complete Government Structure Flowchart — Click nodes to explore, filter by branch</p>
+</div>
+
+<div class="filter-bar">
+    <button class="filter-btn all active" data-filter="all">⬛ All</button>
+    <button class="filter-btn executive" data-filter="executive">🟢 Executive</button>
+    <button class="filter-btn legislative" data-filter="legislative">🔴 Legislative</button>
+    <button class="filter-btn judicial" data-filter="judicial">🔵 Judicial</button>
+    <button class="filter-btn regional" data-filter="regional">🟠 Regional</button>
+    <button class="filter-btn tax" data-filter="tax">🟣 Taxation</button>
+    <button class="filter-btn refugee" data-filter="refugee">🟩 Refugee Admin</button>
+</div>
+
+<div class="zoom-controls">
+    <button class="zoom-btn" id="zoomOut" title="Zoom Out">−</button>
+    <button class="zoom-btn" id="zoomIn" title="Zoom In">+</button>
+    <button class="zoom-btn" id="zoomReset" title="Reset">⌂</button>
+</div>
+
+<div class="legend">
+    <div class="legend-title">Branch Colors</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Executive</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Legislative</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Judicial</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>Regional</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Concurrent</div>
+</div>
+
+<div class="tooltip" id="tooltip">
+    <div class="tooltip-title" id="tooltip-title"></div>
+    <div class="tooltip-content" id="tooltip-content"></div>
+    <div class="tooltip-hint">Click for details</div>
+</div>
+
+<div id="info-panel">
+    <button id="info-panel-close">✕</button>
+    <div id="info-panel-title">Node Info</div>
+    <div id="info-panel-desc"></div>
+</div>
+
+<div class="flowchart-wrapper">
+<div class="flowchart-container" id="flowchart">
+<svg id="connections-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+
+<!-- LEVEL 1: THE PEOPLE -->
+<div class="level" data-branch="legislative">
+    <div class="node primary-size legislative" id="n-people"
+         data-title="The People" data-branch="legislative"
+         data-desc="The sovereign power of the Federal Democratic Republic of Ethiopia resides in the people. All power emanates from the people through their elected representatives.">
+        <div class="node-icon">👥</div>
+        <div class="node-title">The People</div>
+        <div class="node-subtitle">Sovereign Power</div>
+    </div>
+</div>
+<div class="flow-arrow-down">⬇</div>
+
+<!-- LEVEL 2: CONSTITUTION -->
+<div class="level" data-branch="legislative">
+    <div class="node large legislative" id="n-constitution"
+         data-title="FDRE Constitution (1995)" data-branch="legislative"
+         data-desc="Adopted in 1995. Establishes the federal system, ethnic federalism, separation of powers, and fundamental rights. The supreme law of the land.">
+        <div class="node-icon">📜</div>
+        <div class="node-title">FDRE Constitution (1995)</div>
+        <div class="node-subtitle">Supreme Law • Ethnic Federalism • Separation of Powers</div>
+    </div>
+</div>
+<div class="flow-arrow-down">⬇</div>
+
+<!-- LEVEL 3: PARLIAMENT -->
+<div class="level" data-branch="legislative">
+    <div class="node wide legislative" id="n-parliament"
+         data-title="Federal Parliamentary Assembly" data-branch="legislative"
+         data-desc="The bicameral parliament of Ethiopia. Creates laws and manages the federal structure. Consists of the House of Peoples' Representatives (lower) and House of Federation (upper).">
+        <div class="node-icon">🏛️</div>
+        <div class="node-title">Federal Parliamentary Assembly</div>
+        <div class="node-subtitle">Bicameral Legislature • Law Making Authority</div>
+    </div>
+</div>
+<div class="connector-dots">• • •</div>
+
+<!-- LEVEL 4: TWO HOUSES -->
+<div class="level" data-branch="legislative">
+    <div class="node legislative" id="n-hopr"
+         data-title="House of Peoples' Representatives (HoPR)" data-branch="legislative"
+         data-desc="Lower house with up to 550 members. Sole legislative body of the federal government. Passes national laws, approves federal budget, appoints PM and federal judges, ratifies treaties.">
+        <div class="node-badge">550</div>
+        <div class="node-icon">🏛️</div>
+        <div class="node-title">HoPR</div>
+        <div class="node-subtitle">Lower House • Legislation • Budget</div>
+    </div>
+    <div class="node legislative" id="n-hof"
+         data-title="House of Federation (HoF)" data-branch="legislative"
+         data-desc="Upper house representing ethnic groups. Does NOT draft standard laws. Interprets Constitution, resolves inter-state disputes, determines revenue-sharing formula for federal block grants.">
+        <div class="node-icon">🤝</div>
+        <div class="node-title">HoF</div>
+        <div class="node-subtitle">Upper House • Constitutional • Revenue</div>
+    </div>
+</div>
+
+<div class="section-divider"><span class="section-label">Executive Branch</span></div>
+
+<!-- LEVEL 5: EXECUTIVE HEADS -->
+<div class="level" data-branch="executive">
+    <div class="node ceremonial" id="n-president"
+         data-title="President of the Republic" data-branch="executive"
+         data-desc="Taye Atske Selassie (Current). Largely ceremonial role. Elected by HoPR. Represents Ethiopia internationally. Signs laws into effect.">
+        <div class="node-icon">👑</div>
+        <div class="node-title">President</div>
+        <div class="node-subtitle">Ceremonial • Elected by HoPR</div>
+    </div>
+    <div class="node primary-size primary executive" id="n-pm"
+         data-title="Prime Minister" data-branch="executive"
+         data-desc="Abiy Ahmed (Current). Highest executive power. Commander-in-Chief of Armed Forces. Chairs Council of Ministers. Appoints ministers and federal judges with HoPR approval.">
+        <div class="node-icon">⭐</div>
+        <div class="node-title">Prime Minister</div>
+        <div class="node-subtitle">Head of Government • Commander-in-Chief</div>
+    </div>
+</div>
+<div class="flow-arrow-down">⬇</div>
+
+<!-- LEVEL 6: COUNCIL -->
+<div class="level" data-branch="executive">
+    <div class="node wide executive" id="n-council"
+         data-title="Council of Ministers" data-branch="executive"
+         data-desc="The Cabinet. Core executive body composed of federal ministers and the Prime Minister. Implements national policies, manages day-to-day administration of the state.">
+        <div class="node-icon">⚡</div>
+        <div class="node-title">Council of Ministers (The Cabinet)</div>
+        <div class="node-subtitle">25+ Federal Ministries • Policy Implementation</div>
+    </div>
+</div>
+<div class="connector-dots">• • •</div>
+
+<!-- LEVEL 7: MINISTRIES -->
+<div class="level" data-branch="executive">
+    <div class="group">
+        <div class="group-title">Federal Ministries</div>
+        <div class="ministries-grid">
+            <div class="ministry-node key" data-title="Ministry of Finance" data-branch="executive" data-desc="Manages national budget, public debt, macroeconomic policies.">💰 Finance</div>
+            <div class="ministry-node key" data-title="Ministry of Revenues" data-branch="executive" data-desc="Apex tax management. Oversees domestic taxes and Ethiopian Customs Commission.">📊 Revenues</div>
+            <div class="ministry-node key" data-title="Ministry of Planning & Development" data-branch="executive" data-desc="Drafts Ten-Year Development Plans and macroeconomic frameworks.">📈 Planning</div>
+            <div class="ministry-node key" data-title="Trade & Regional Integration" data-branch="executive" data-desc="Oversees trade competitiveness, export permits, WTO, AfCFTA.">🌍 Trade</div>
+            <div class="ministry-node key" data-title="Ministry of Industry" data-branch="executive" data-desc="Manufacturing, special economic zones, import substitution.">🏭 Industry</div>
+            <div class="ministry-node key" data-title="Water & Energy" data-branch="executive" data-desc="National electrification, water resource management, water use permits.">⚡ Water & Energy</div>
+            <div class="ministry-node key" data-title="Mines & Petroleum" data-branch="executive" data-desc="Mining licenses, oil/gas operations, natural resource extraction.">⛏️ Mines</div>
+            <div class="ministry-node key" data-title="Defense" data-branch="executive" data-desc="Oversees national security and armed forces.">🛡️ Defense</div>
+            <div class="ministry-node" data-title="Peace" data-branch="executive" data-desc="Internal conflict resolution.">☮️ Peace</div>
+            <div class="ministry-node" data-title="Justice" data-branch="executive" data-desc="Federal legal frameworks and law enforcement.">⚖️ Justice</div>
+            <div class="ministry-node" data-title="Foreign Affairs" data-branch="executive" data-desc="International diplomacy and treaties.">🌐 Foreign</div>
+            <div class="ministry-node" data-title="Agriculture" data-branch="executive" data-desc="Agricultural policy and development.">🌾 Agriculture</div>
+            <div class="ministry-node" data-title="Health" data-branch="executive" data-desc="National health system.">🏥 Health</div>
+            <div class="ministry-node" data-title="Education" data-branch="executive" data-desc="Educational policy and curriculum.">📚 Education</div>
+            <div class="ministry-node" data-title="Transport" data-branch="executive" data-desc="National transport infrastructure and logistics.">🚛 Transport</div>
+            <div class="ministry-node" data-title="Urban Development" data-branch="executive" data-desc="Urban planning and infrastructure.">🏙️ Urban Dev</div>
+            <div class="ministry-node" data-title="Labour" data-branch="executive" data-desc="Employment and skills development.">👷 Labour</div>
+            <div class="ministry-node" data-title="Innovation & Tech" data-branch="executive" data-desc="Digital transformation.">💻 Technology</div>
+            <div class="ministry-node" data-title="Tourism" data-branch="executive" data-desc="Tourism development.">✈️ Tourism</div>
+            <div class="ministry-node" data-title="Women & Social Affairs" data-branch="executive" data-desc="Social welfare programs.">👥 Social</div>
+        </div>
+    </div>
+</div>
+
+<div class="section-divider"><span class="section-label">Judicial Branch</span></div>
+
+<!-- LEVEL 8: JUDICIAL -->
+<div class="level" data-branch="judicial">
+    <div class="node judicial" id="n-supreme"
+         data-title="Federal Supreme Court" data-branch="judicial"
+         data-desc="Highest court in Ethiopia. Located in Addis Ababa. Power to adjudicate on all federal matters. Constitutional interpretation.">
+        <div class="node-icon">⚖️</div>
+        <div class="node-title">Federal Supreme Court</div>
+        <div class="node-subtitle">Highest Court • Addis Ababa</div>
+    </div>
+</div>
+<div class="connector-dots">• • •</div>
+
+<div class="level" data-branch="judicial">
+    <div class="node judicial"
+         data-title="Federal High Courts" data-branch="judicial"
+         data-desc="Intermediate appellate courts. Handle serious federal crimes, federal civil cases.">
+        <div class="node-title">Federal High Courts</div>
+        <div class="node-subtitle">Appellate • Regional Benches</div>
+    </div>
+    <div class="node judicial"
+         data-title="Federal First Instance Courts" data-branch="judicial"
+         data-desc="Trial courts at federal level. Handle initial federal cases, banking and insurance disputes.">
+        <div class="node-title">First Instance Courts</div>
+        <div class="node-subtitle">Trial Courts • Entry Level</div>
+    </div>
+</div>
+
+<div class="section-divider"><span class="section-label">Regional & Local Government</span></div>
+
+<!-- LEVEL 9: REGIONAL -->
+<div class="level" data-branch="regional">
+    <div class="node wide regional" id="n-regions"
+         data-title="Regional States" data-branch="regional"
+         data-desc="12 Regional States under Ethiopia's ethnic federalism. Each has autonomous powers with State Council and Executive Bureaus.">
+        <div class="node-icon">🗺️</div>
+        <div class="node-title">12 Regional States</div>
+        <div class="node-subtitle">Ethnic Federalism • Autonomous Powers</div>
+    </div>
+</div>
+<div class="connector-dots">• • •</div>
+
+<!-- LEVEL 10: REGIONS LIST -->
+<div class="level" data-branch="regional">
+    <div class="group">
+        <div class="group-title">Regional States & Chartered Cities</div>
+        <div class="regions-grid">
+            <div class="region-node" data-branch="regional" data-title="Oromia" data-desc="Largest state by population.">Oromia</div>
+            <div class="region-node" data-branch="regional" data-title="Amhara" data-desc="Second largest state.">Amhara</div>
+            <div class="region-node" data-branch="regional" data-title="Tigray" data-desc="Northern state.">Tigray</div>
+            <div class="region-node" data-branch="regional" data-title="Somali" data-desc="Eastern state.">Somali</div>
+            <div class="region-node" data-branch="regional" data-title="Afar" data-desc="North-eastern state.">Afar</div>
+            <div class="region-node" data-branch="regional" data-title="Sidama" data-desc="Southern state.">Sidama</div>
+            <div class="region-node" data-branch="regional" data-title="SWEP" data-desc="South West Ethiopia Peoples'.">SWEP</div>
+            <div class="region-node" data-branch="regional" data-title="S. Ethiopia" data-desc="South Ethiopia Regional State.">S. Ethiopia</div>
+            <div class="region-node" data-branch="regional" data-title="Central Ethiopia" data-desc="Central Ethiopia Regional State.">Central</div>
+            <div class="region-node" data-branch="regional" data-title="Benishangul-Gumuz" data-desc="Western border region.">B-Gumuz</div>
+            <div class="region-node" data-branch="regional" data-title="Gambella" data-desc="Western region.">Gambella</div>
+            <div class="region-node" data-branch="regional" data-title="Harari" data-desc="City-state region.">Harari</div>
+            <div class="region-node chartered" data-branch="regional" data-title="Addis Ababa" data-desc="Capital city, federal seat.">Addis Ababa</div>
+            <div class="region-node chartered" data-branch="regional" data-title="Dire Dawa" data-desc="Chartered city in the east.">Dire Dawa</div>
+        </div>
+    </div>
+</div>
+<div class="flow-arrow-down">⬇</div>
+
+<!-- LEVEL 11: REGIONAL STRUCTURE -->
+<div class="level" data-branch="regional">
+    <div class="node regional"
+         data-title="State Council" data-branch="regional"
+         data-desc="Regional parliament. Equivalent to HoPR at state level. Enacts regional laws, approves regional budget.">
+        <div class="node-title">State Council</div>
+        <div class="node-subtitle">Regional Parliament</div>
+    </div>
+    <div class="node regional"
+         data-title="Executive Bureaus" data-branch="regional"
+         data-desc="Mirror of federal ministries at regional level. Regional Energy, Land, Revenue, Health, Education Bureaus.">
+        <div class="node-title">Executive Bureaus</div>
+        <div class="node-subtitle">Regional Ministries</div>
+    </div>
+</div>
+<div class="connector-dots">• • •</div>
+
+<!-- LEVEL 12: LOCAL -->
+<div class="level" data-branch="regional">
+    <div class="node regional"
+         data-title="Zones" data-branch="regional"
+         data-desc="Administrative divisions within regions.">
+        <div class="node-title">Zones</div>
+        <div class="node-subtitle">Administrative</div>
+    </div>
+    <div class="node regional"
+         data-title="Woredas" data-branch="regional"
+         data-desc="Districts — local government level.">
+        <div class="node-title">Woredas</div>
+        <div class="node-subtitle">Districts</div>
+    </div>
+    <div class="node regional"
+         data-title="Kebeles" data-branch="regional"
+         data-desc="Neighborhoods/Wards — lowest administrative unit.">
+        <div class="node-title">Kebeles</div>
+        <div class="node-subtitle">Neighborhoods</div>
+    </div>
+</div>
+
+<div class="section-divider"><span class="section-label">Constitutional Taxation Powers</span></div>
+
+<!-- LEVEL 13: TAX -->
+<div class="level" data-branch="tax">
+    <div class="node large tax-federal"
+         data-title="Article 96: Federal Tax Power" data-branch="tax"
+         data-desc="Exclusive federal taxation. Ministry of Revenues and Ethiopian Customs Commission collect these taxes.">
+        <div class="node-icon">💚</div>
+        <div class="node-title">Federal Power (Art. 96)</div>
+        <div class="node-subtitle">Exclusive Federal Taxes</div>
+        <ul class="tax-list">
+            <li>Customs duties & import taxes</li>
+            <li>Federal employee income tax</li>
+            <li>Federal enterprise taxes</li>
+            <li>Air, rail, sea transport taxes</li>
+            <li>National lottery taxes</li>
+        </ul>
+    </div>
+    <div class="node large tax-concurrent"
+         data-title="Article 98: Concurrent Tax Power" data-branch="tax"
+         data-desc="Shared between federal and regional governments. Revenue divided according to HoF formula (50/50 for corporate taxes under recent reforms).">
+        <div class="node-icon">💜</div>
+        <div class="node-title">Concurrent Power (Art. 98)</div>
+        <div class="node-subtitle">Shared Revenue</div>
+        <ul class="tax-list">
+            <li>Joint enterprise taxes</li>
+            <li>Private corporate taxes (50/50)</li>
+            <li>Mining & petroleum royalties</li>
+            <li>Large-scale resource taxes</li>
+        </ul>
+    </div>
+    <div class="node large tax-regional"
+         data-title="Article 97: Regional Tax Power" data-branch="tax"
+         data-desc="Exclusive regional taxation. Collected by Regional Revenue Authorities within each state.">
+        <div class="node-icon">🧡</div>
+        <div class="node-title">State Power (Art. 97)</div>
+        <div class="node-subtitle">Exclusive Regional Taxes</div>
+        <ul class="tax-list">
+            <li>Regional employee income tax</li>
+            <li>Land lease fees</li>
+            <li>Agricultural income tax</li>
+            <li>Individual trader taxes</li>
+            <li>Private property taxes</li>
+        </ul>
+    </div>
+    <div class="node large tax-undesignated"
+         data-title="Article 99: Undesignated Power" data-branch="tax"
+         data-desc="For new/unspecified taxes. Requires 2/3 vote in joint HoPR/HoF session.">
+        <div class="node-icon">💙</div>
+        <div class="node-title">Undesignated (Art. 99)</div>
+        <div class="node-subtitle">New/Unspecified Taxes</div>
+        <ul class="tax-list">
+            <li>Modern property taxes</li>
+            <li>Motor vehicle circulation taxes</li>
+            <li>Any new tax categories</li>
+            <li>Requires 2/3 joint vote</li>
+        </ul>
+    </div>
+</div>
+
+<div class="section-divider"><span class="section-label">Revenue Flow</span></div>
+
+<!-- LEVEL 14: REVENUE -->
+<div class="level" data-branch="tax">
+    <div class="node tax-federal"
+         data-title="Federal Revenue" data-branch="tax"
+         data-desc="Stays with federal government. Funds national defense, foreign affairs, federal infrastructure.">
+        <div class="node-title">Federal Revenue</div>
+        <div class="node-subtitle">Art. 96 Taxes</div>
+    </div>
+    <div class="node tax-concurrent"
+         data-title="Shared Revenue" data-branch="tax"
+         data-desc="Split between federal and regional per HoF formula. Recent reforms: 50/50 for business profit taxes.">
+        <div class="node-title">Shared Revenue</div>
+        <div class="node-subtitle">Art. 98 (50/50 Split)</div>
+    </div>
+    <div class="node tax-regional"
+         data-title="Regional Revenue" data-branch="tax"
+         data-desc="Stays with regional states. Funds local services, education, health at regional level.">
+        <div class="node-title">Regional Revenue</div>
+        <div class="node-subtitle">Art. 97 Taxes</div>
+    </div>
+</div>
+<div class="flow-arrow-down">⬇</div>
+
+<!-- LEVEL 15: BLOCK GRANTS -->
+<div class="level" data-branch="tax">
+    <div class="node legislative"
+         data-title="Federal Block Grants" data-branch="tax"
+         data-desc="HoF determines revenue-sharing formula. Federal government provides block grants to regions from federal revenue.">
+        <div class="node-icon">🤝</div>
+        <div class="node-title">Federal Block Grants</div>
+        <div class="node-subtitle">HoF Formula • Redistribution</div>
+    </div>
+</div>
+
+<div class="section-divider"><span class="section-label">Refugee Administration & Service Delivery</span></div>
+
+<div class="level" data-branch="refugee">
+    <div class="node wide refugee"
+         data-title="RRS (Refugees and Returnees Service)" data-branch="refugee"
+         data-desc="Government authority for refugee affairs. Ethiopia's Refugee Proclamation No. 1110/2019 sets the legal framework, and implementation is led by RRS with federal and regional authorities.">
+        <div class="node-icon">🏛️</div>
+        <div class="node-title">RRS</div>
+        <div class="node-subtitle">Government Lead • Asylum Administration • Legal Oversight</div>
+    </div>
+    <div class="node wide humanitarian"
+         data-title="UNHCR (Co-Lead with RRS)" data-branch="refugee"
+         data-desc="UNHCR co-leads Ethiopia's refugee response with RRS, supporting protection, registration/documentation, shelter coordination, and durable solutions.">
+        <div class="node-icon">🛡️</div>
+        <div class="node-title">UNHCR</div>
+        <div class="node-subtitle">Protection • Registration • Shelter Coordination</div>
+    </div>
+</div>
+<div class="connector-dots">• • •</div>
+
+<div class="level" data-branch="refugee">
+    <div class="node humanitarian"
+         data-title="WFP" data-branch="refugee"
+         data-desc="WFP provides food assistance for refugees in Ethiopia, including in-kind/cash modalities, school feeding support, and malnutrition prevention/treatment in refugee operations.">
+        <div class="node-icon">🍲</div>
+        <div class="node-title">WFP</div>
+        <div class="node-subtitle">Food Assistance • Nutrition</div>
+    </div>
+    <div class="node humanitarian"
+         data-title="IOM" data-branch="refugee"
+         data-desc="IOM supports displacement operations in Ethiopia through site coordination and management (CCCM), displacement tracking (DTM), emergency shelter/NFI, and mobility support in mixed displacement contexts.">
+        <div class="node-icon">📍</div>
+        <div class="node-title">IOM</div>
+        <div class="node-subtitle">Site Mgmt • DTM • Mobility</div>
+    </div>
+    <div class="node humanitarian"
+         data-title="UNICEF & Sector Partners" data-branch="refugee"
+         data-desc="UNICEF and partners support refugee children and households with WASH, education continuity, child protection, and essential health/nutrition services.">
+        <div class="node-icon">🧒</div>
+        <div class="node-title">UNICEF + Partners</div>
+        <div class="node-subtitle">WASH • Education • Child Protection</div>
+    </div>
+</div>
+<div class="flow-arrow-down">⬇</div>
+
+<div class="level" data-branch="refugee">
+    <div class="node refugee"
+         data-title="Protection & Registration" data-branch="refugee"
+         data-desc="Core asylum functions include reception, registration, documentation, and protection case management through government-UNHCR coordination.">
+        <div class="node-title">Protection & Registration</div>
+        <div class="node-subtitle">RRS + UNHCR</div>
+    </div>
+    <div class="node refugee"
+         data-title="Shelter & Site Services" data-branch="refugee"
+         data-desc="Shelter/NFI provision and site services are coordinated through inter-agency planning with RRS, UNHCR, IOM, and operational NGO partners.">
+        <div class="node-title">Shelter & Site Services</div>
+        <div class="node-subtitle">UNHCR/IOM/NGOs</div>
+    </div>
+    <div class="node refugee"
+         data-title="Food & Nutrition" data-branch="refugee"
+         data-desc="Food support and nutrition interventions are primarily delivered through WFP and partners under response plans.">
+        <div class="node-title">Food & Nutrition</div>
+        <div class="node-subtitle">WFP + Health Partners</div>
+    </div>
+    <div class="node refugee"
+         data-title="Energy for Cooking & Lighting" data-branch="refugee"
+         data-desc="Clean energy programming in refugee settings focuses on safer cooking and lower firewood dependence, led through UNHCR-government-partner initiatives.">
+        <div class="node-title">Energy Access</div>
+        <div class="node-subtitle">Clean Cooking • Lighting</div>
+    </div>
+</div>
+
+<div style="text-align:center;padding:50px;color:#444;font-size:0.8rem">
+    <p><span class="flag-icon" aria-hidden="true"></span> Federal Democratic Republic of Ethiopia • Government Structure Flowchart</p>
+    <p style="margin-top:8px">Based on the 1995 Constitution and current administrative structure</p>
+</div>
+</div><!-- /flowchart-container -->
+</div><!-- /flowchart-wrapper -->
+
+<script>
+// ═══════════════════════════════════════════
+// PARTICLE BACKGROUND
+// ═══════════════════════════════════════════
+(function() {
+    const c = document.getElementById('bg-canvas');
+    const ctx = c.getContext('2d');
+    let W, H, pts = [];
+    const COLS = ['#009639','#ffcd00','#dc281e','#0f3ebf','#ff8c00'];
+
+    function resize() { W = c.width = innerWidth; H = c.height = innerHeight; }
+    function mkPt() {
+        return { x: Math.random()*W, y: Math.random()*H, r: Math.random()*1.5+0.3,
+                 vx:(Math.random()-.5)*.35, vy:(Math.random()-.5)*.35,
+                 col: COLS[Math.floor(Math.random()*COLS.length)],
+                 a: Math.random()*.4+0.08, ph: Math.random()*Math.PI*2 };
+    }
+    resize();
+    pts = Array.from({length:100}, mkPt);
+    window.addEventListener('resize', resize);
+
+    (function loop() {
+        ctx.clearRect(0,0,W,H);
+        for(let i=0;i<pts.length;i++) {
+            for(let j=i+1;j<pts.length;j++) {
+                const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y, d=Math.hypot(dx,dy);
+                if(d<90){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);
+                    ctx.strokeStyle=`rgba(255,205,0,${0.035*(1-d/90)})`;ctx.lineWidth=0.5;ctx.stroke();}
+            }
+        }
+        for(const p of pts){
+            p.ph+=0.025;
+            ctx.globalAlpha=Math.max(0.05, p.a+Math.sin(p.ph)*0.12);
+            ctx.fillStyle=p.col; ctx.beginPath();
+            ctx.arc(p.x,p.y,p.r+Math.sin(p.ph)*.5,0,Math.PI*2); ctx.fill();
+            p.x+=p.vx; p.y+=p.vy;
+            if(p.x<-5)p.x=W+5; if(p.x>W+5)p.x=-5;
+            if(p.y<-5)p.y=H+5; if(p.y>H+5)p.y=-5;
+        }
+        ctx.globalAlpha=1;
+        requestAnimationFrame(loop);
+    })();
+})();
+
+// ═══════════════════════════════════════════
+// SCROLL-TRIGGERED ENTRANCE ANIMATIONS
+// ═══════════════════════════════════════════
+function checkVisible() {
+    const vh = window.innerHeight;
+    document.querySelectorAll('.node:not(.visible)').forEach((el,i) => {
+        const r = el.getBoundingClientRect();
+        if(r.top < vh * 0.93) {
+            setTimeout(()=>el.classList.add('visible'), i*40);
+        }
+    });
+    document.querySelectorAll('.ministry-node:not(.visible)').forEach((el,i) => {
+        const r = el.getBoundingClientRect();
+        if(r.top < vh * 0.93) setTimeout(()=>el.classList.add('visible'), i*30);
+    });
+    document.querySelectorAll('.region-node:not(.visible)').forEach((el,i) => {
+        const r = el.getBoundingClientRect();
+        if(r.top < vh * 0.93) setTimeout(()=>el.classList.add('visible'), i*40);
+    });
+}
+window.addEventListener('scroll', checkVisible, {passive:true});
+setTimeout(checkVisible, 300);
+
+// ═══════════════════════════════════════════
+// SCROLL PROGRESS
+// ═══════════════════════════════════════════
+window.addEventListener('scroll', () => {
+    const p = window.scrollY / (document.body.scrollHeight - innerHeight);
+    document.getElementById('scroll-progress').style.width = (p*100)+'%';
+}, {passive:true});
+
+// ═══════════════════════════════════════════
+// TOOLTIP
+// ═══════════════════════════════════════════
+const tooltip = document.getElementById('tooltip');
+const ttTitle = document.getElementById('tooltip-title');
+const ttContent = document.getElementById('tooltip-content');
+
+document.querySelectorAll('.node, .ministry-node, .region-node').forEach(el => {
+    el.addEventListener('mouseenter', e => {
+        const t = el.dataset.title, d = el.dataset.desc;
+        if(t && d) {
+            ttTitle.textContent = t; ttContent.textContent = d;
+            tooltip.classList.add('visible');
+        }
+    });
+    el.addEventListener('mousemove', e => {
+        let x = e.clientX+16, y = e.clientY+16;
+        if(x+340>innerWidth) x=e.clientX-350;
+        if(y+120>innerHeight) y=e.clientY-130;
+        tooltip.style.left=x+'px'; tooltip.style.top=y+'px';
+    });
+    el.addEventListener('mouseleave', () => tooltip.classList.remove('visible'));
+});
+
+// ═══════════════════════════════════════════
+// NODE CLICK — INFO PANEL & HIGHLIGHT
+// ═══════════════════════════════════════════
+const infoPanel = document.getElementById('info-panel');
+const infoPanelTitle = document.getElementById('info-panel-title');
+const infoPanelDesc = document.getElementById('info-panel-desc');
+let selectedNode = null;
+
+document.getElementById('info-panel-close').addEventListener('click', () => {
+    infoPanel.classList.remove('open');
+    clearHighlight();
+    selectedNode = null;
+});
+
+function clearHighlight() {
+    document.querySelectorAll('.node, .ministry-node, .region-node').forEach(el => {
+        el.classList.remove('selected','dimmed');
+    });
+}
+
+document.querySelectorAll('.node').forEach(el => {
+    el.addEventListener('click', e => {
+        e.stopPropagation();
+        const t = el.dataset.title, d = el.dataset.desc;
+        if(!t) return;
+
+        if(selectedNode === el) {
+            // Deselect
+            clearHighlight(); infoPanel.classList.remove('open'); selectedNode = null;
+            return;
+        }
+        selectedNode = el;
+        const branch = el.dataset.branch;
+
+        // Highlight matching branch
+        clearHighlight();
+        document.querySelectorAll('.node, .ministry-node, .region-node').forEach(n => {
+            if(n.dataset.branch === branch) n.classList.remove('dimmed');
+            else n.classList.add('dimmed');
+        });
+        el.classList.add('selected');
+        el.classList.remove('dimmed');
+
+        // Show panel
+        infoPanelTitle.textContent = t;
+        infoPanelDesc.textContent = d;
+        infoPanel.classList.add('open');
+    });
+});
+
+document.addEventListener('click', () => {
+    clearHighlight(); infoPanel.classList.remove('open'); selectedNode = null;
+});
+
+// ═══════════════════════════════════════════
+// FILTER BY BRANCH
+// ═══════════════════════════════════════════
+let activeFilter = 'all';
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeFilter = btn.dataset.filter;
+
+        const allNodes = document.querySelectorAll('.node, .ministry-node, .region-node');
+        const allLevels = document.querySelectorAll('.level, .connector-dots, .flow-arrow-down, .section-divider');
+
+        if(activeFilter === 'all') {
+            allNodes.forEach(n => { n.style.opacity=''; n.style.transform=''; });
+            allLevels.forEach(l => l.style.opacity='');
+            return;
+        }
+
+        allNodes.forEach(n => {
+            const b = n.dataset.branch;
+            if(b === activeFilter) { n.style.opacity='1'; n.style.transform='scale(1.02)'; }
+            else { n.style.opacity='0.12'; n.style.transform='scale(0.96)'; }
+        });
+        allLevels.forEach(l => {
+            const b = l.dataset && l.dataset.branch;
+            l.style.opacity = (!b || b===activeFilter) ? '1' : '0.15';
+        });
+    });
+});
+
+// ═══════════════════════════════════════════
+// ZOOM (mouse wheel + buttons)
+// ═══════════════════════════════════════════
+let zoom = 1;
+const fc = document.getElementById('flowchart');
+
+function setZoom(z) {
+    zoom = Math.min(1.5, Math.max(0.4, z));
+    fc.style.transform = `scale(${zoom})`;
+}
+document.getElementById('zoomIn').addEventListener('click', () => setZoom(zoom + 0.1));
+document.getElementById('zoomOut').addEventListener('click', () => setZoom(zoom - 0.1));
+document.getElementById('zoomReset').addEventListener('click', () => setZoom(1));
+
+document.querySelector('.flowchart-wrapper').addEventListener('wheel', e => {
+    if(e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        setZoom(zoom + (e.deltaY < 0 ? 0.08 : -0.08));
+    }
+}, {passive:false});
+</script>
+</body>
+</html>
