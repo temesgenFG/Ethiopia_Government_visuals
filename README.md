@@ -2,6 +2,7 @@
 
 Interactive static HTML visualizations of Ethiopia's governance structure:
 
+- `index.html` (combined entry page for all visualizations)
 - `ethiopia_government_flowchart.html`
 - `ethiopia_government_network.html`
 - `ethiopian_government_structure.html`
@@ -17,6 +18,7 @@ python -m http.server 8000
 
 3. Open:
 
+- `http://localhost:8000/`
 - `http://localhost:8000/ethiopia_government_flowchart.html`
 - `http://localhost:8000/ethiopia_government_network.html`
 - `http://localhost:8000/ethiopian_government_structure.html`

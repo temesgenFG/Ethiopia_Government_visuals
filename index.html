@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethiopia Governance Visualizations</title>
+    <style>
+        :root {
+            --bg: #f4f7fb;
+            --surface: #ffffff;
+            --text: #172033;
+            --muted: #51607a;
+            --primary: #1455b7;
+            --primary-strong: #0f3f88;
+            --border: #d7dfec;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 100%);
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 24px 16px 28px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: clamp(1.4rem, 2.2vw, 2rem);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            margin: 0 0 16px;
+            color: var(--muted);
+            font-size: 0.96rem;
+        }
+
+        .tablist {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .tab-btn {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            padding: 9px 14px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+
+        .tab-btn[aria-selected="true"] {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        .tab-btn:hover {
+            border-color: var(--primary-strong);
+        }
+
+        .viewer-shell {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(10, 32, 75, 0.08);
+        }
+
+        .viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            background: #f9fbff;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .viewer-title {
+            margin: 0;
+            font-size: 0.96rem;
+            font-weight: 700;
+        }
+
+        .open-link {
+            color: var(--primary-strong);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .open-link:hover {
+            text-decoration: underline;
+        }
+
+        iframe {
+            width: 100%;
+            height: min(82vh, 960px);
+            border: 0;
+            display: block;
+            background: #fff;
+        }
+
+        @media (max-width: 720px) {
+            .container {
+                padding: 16px 10px 18px;
+            }
+
+            iframe {
+                height: 74vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <h1>Ethiopia Governance Visualizations</h1>
+        <p class="subtitle">Use the tabs to view each interactive page in a single GitHub Pages entry point.</p>
+
+        <div class="tablist" role="tablist" aria-label="Visualization selector">
+            <button class="tab-btn" role="tab" id="tab-flowchart" aria-selected="true" data-file="ethiopia_government_flowchart.html" data-title="Government Flowchart">Flowchart</button>
+            <button class="tab-btn" role="tab" id="tab-network" aria-selected="false" data-file="ethiopia_government_network.html" data-title="Governance Network">Network</button>
+            <button class="tab-btn" role="tab" id="tab-structure" aria-selected="false" data-file="ethiopian_government_structure.html" data-title="Government Structure">Structure</button>
+        </div>
+
+        <section class="viewer-shell" aria-live="polite">
+            <div class="viewer-header">
+                <h2 class="viewer-title" id="viewer-title">Government Flowchart</h2>
+                <a id="open-link" class="open-link" href="ethiopia_government_flowchart.html">Open page directly</a>
+            </div>
+            <iframe id="viewer" title="Ethiopia governance visualization viewer" src="ethiopia_government_flowchart.html" loading="lazy"></iframe>
+        </section>
+    </main>
+
+    <script>
+        const viewer = document.getElementById('viewer');
+        const viewerTitle = document.getElementById('viewer-title');
+        const openLink = document.getElementById('open-link');
+        const tabs = Array.from(document.querySelectorAll('.tab-btn'));
+
+        function activateTab(tab) {
+            tabs.forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
+            const file = tab.dataset.file;
+            const title = tab.dataset.title;
+            viewer.src = file;
+            viewerTitle.textContent = title;
+            openLink.href = file;
+            window.location.hash = tab.id.replace('tab-', '');
+        }
+
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => activateTab(tab));
+        });
+
+        const hash = window.location.hash.replace('#', '');
+        const match = tabs.find((t) => t.id === `tab-${hash}`);
+        if (match) {
+            activateTab(match);
+        }
+    </script>
+</body>
+</html>
