@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://d3js.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+    <meta name="referrer" content="no-referrer">
     <title>Federal Democratic Republic of Ethiopia - Government Structure</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -1775,7 +1777,9 @@ function renderSunburst() {
             .attrTween('transform', d => () => labelTransform(d.current));
         const name = p === root ? 'Ethiopia' : p.data.name.slice(0,18);
         centerLabel.text(name);
-        breadcrumb.innerHTML = p === root ? 'Click a section to explore &rarr;' : `Viewing: <span>${p.ancestors().map(d=>d.data.name).filter(n=>n!=='Ethiopian Government').reverse().join(' › ')}</span>`;
+        breadcrumb.textContent = p === root
+            ? 'Click a section to explore ->'
+            : `Viewing: ${p.ancestors().map(d=>d.data.name).filter(n=>n!=='Ethiopian Government').reverse().join(' > ')}`;
     }
 
     // Entrance animation

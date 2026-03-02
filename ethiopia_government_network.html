@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://d3js.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+    <meta name="referrer" content="no-referrer">
     <title>FDRE Government - Relationship Network</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -460,6 +462,15 @@ document.getElementById('node-count').textContent = nodes.length;
 document.getElementById('link-count').textContent = links.length;
 document.getElementById('domain-count').textContent = new Set(nodes.map(n=>n.group)).size;
 
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function init() {
     const W = innerWidth, H = innerHeight;
     const container = document.getElementById('graph-container');
@@ -622,14 +633,14 @@ function selectNode(d) {
 
     document.getElementById('incoming-rels').innerHTML = inc.map(l=>`
         <div class="rel-item incoming">
-            <div class="rel-type">${l.type}</div>
-            <div class="rel-target">← ${l.source.label||l.source}</div>
+            <div class="rel-type">${escapeHtml(l.type)}</div>
+            <div class="rel-target">← ${escapeHtml(l.source.label||l.source)}</div>
         </div>`).join('') || '<p style="color:#555;font-size:0.8rem">No incoming relations</p>';
 
     document.getElementById('outgoing-rels').innerHTML = out.map(l=>`
         <div class="rel-item outgoing">
-            <div class="rel-type">${l.type}</div>
-            <div class="rel-target">→ ${l.target.label||l.target}</div>
+            <div class="rel-type">${escapeHtml(l.type)}</div>
+            <div class="rel-target">→ ${escapeHtml(l.target.label||l.target)}</div>
         </div>`).join('') || '<p style="color:#555;font-size:0.8rem">No outgoing relations</p>';
 
     document.getElementById('sidebar').classList.add('open');
@@ -731,7 +742,7 @@ searchEl.addEventListener('input',()=>{
     const q = searchEl.value.toLowerCase().trim();
     if(!q){searchRes.innerHTML='';return;}
     const matches = nodes.filter(n=>(n.label+' '+(n.full||'')).toLowerCase().includes(q)).slice(0,8);
-    searchRes.innerHTML = matches.map(n=>`<div class="search-result" data-id="${n.id}">${n.icon} ${n.label}</div>`).join('');
+    searchRes.innerHTML = matches.map(n=>`<div class="search-result" data-id="${escapeHtml(n.id)}">${escapeHtml(n.icon)} ${escapeHtml(n.label)}</div>`).join('');
     searchRes.querySelectorAll('.search-result').forEach(el=>{
         el.addEventListener('click',()=>{
             const node = nodes.find(n=>n.id===el.dataset.id);
